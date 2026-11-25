@@ -147,6 +147,31 @@ final class EditPanelUITests: XCTestCase {
     }
 
     @MainActor
+    func testShadowsChangeWritesXMP() throws {
+        let app = try launch(.init(pairs: ["DSC00001"]))
+        app.typeKey("e", modifierFlags: [])
+        let slider = element(app, "edit.shadows")
+        XCTAssertTrue(slider.waitForExistence(timeout: 5))
+        slider.adjust(toNormalizedSliderPosition: 0.75)
+        XCTAssertNotEqual(element(app, "edit.shadows.value").text, "0")
+
+        let url = try XCTUnwrap(fixture).url.appendingPathComponent("DSC00001.xmp")
+        let pattern = try NSRegularExpression(pattern: #"photosift:shadows[^0-9-]+(-?[0-9]+(?:\.[0-9]+)?)"#)
+        let deadline = Date().addingTimeInterval(5)
+        var shadows: Double?
+        while Date() < deadline, shadows.map({ $0 == 0 }) ?? true {
+            if let text = try? String(contentsOf: url, encoding: .utf8),
+               let match = pattern.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+               let range = Range(match.range(at: 1), in: text) {
+                shadows = Double(text[range])
+            }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        XCTAssertNotNil(shadows, "photosift:shadows missing in the XMP")
+        XCTAssertNotEqual(shadows ?? 0, 0)
+    }
+
+    @MainActor
     func testDarkroomPhotoIsLockedAndUnmarkUnlocks() throws {
         let app = try launch(.init(pairs: ["DSC00001", "DSC00002"]))
         app.typeKey("c", modifierFlags: [])

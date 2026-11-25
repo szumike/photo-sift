@@ -218,6 +218,7 @@ struct InfoPanel: View {
         if abs(edit.angle) > 0.05 { parts.append("prost.") }
         if edit.temperature != 0 || edit.tint != 0 { parts.append("BB") }
         if edit.exposure != 0 { parts.append("ekspozycja") }
+        if edit.highlights != 0 || edit.shadows != 0 { parts.append("światła/cienie") }
         return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 }

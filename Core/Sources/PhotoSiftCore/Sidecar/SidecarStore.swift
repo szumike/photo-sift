@@ -35,7 +35,9 @@ public struct SidecarStore: Sendable {
             temperature: temperature,
             tint: tint,
             // Edits written before exposure existed have no field: that means 0.
-            exposure: Self.double(metadata, "exposure") ?? 0
+            exposure: Self.double(metadata, "exposure") ?? 0,
+            highlights: Self.double(metadata, "highlights") ?? 0,
+            shadows: Self.double(metadata, "shadows") ?? 0
         )
         return SidecarState(edit: edit, markedForDarkroom: marked)
     }
@@ -61,6 +63,8 @@ public struct SidecarStore: Sendable {
             try Self.set(metadata, "temperature", Self.format(edit.temperature))
             try Self.set(metadata, "tint", Self.format(edit.tint))
             try Self.set(metadata, "exposure", Self.format(edit.exposure))
+            try Self.set(metadata, "highlights", Self.format(edit.highlights))
+            try Self.set(metadata, "shadows", Self.format(edit.shadows))
         }
         try Self.persist(metadata, to: url)
     }

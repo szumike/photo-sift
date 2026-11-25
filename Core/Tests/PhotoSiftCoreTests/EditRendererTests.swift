@@ -116,6 +116,183 @@ import Testing
         #expect(try meanLuma(url: url, exposure: -1) < base)
     }
 
+    /// Synthetic image: left 40% dark grey, right 40% bright grey, a mid-grey band between, `scale` x 600x400.
+    private func tonalImage(scale: CGFloat = 1) -> CIImage {
+        let dark = CIImage(color: CIColor(red: 0.15, green: 0.15, blue: 0.15)).cropped(to: CGRect(x: 0, y: 0, width: 240, height: 400))
+        let mid = CIImage(color: CIColor(red: 0.5, green: 0.5, blue: 0.5)).cropped(to: CGRect(x: 240, y: 0, width: 120, height: 400))
+        let bright = CIImage(color: CIColor(red: 0.85, green: 0.85, blue: 0.85)).cropped(to: CGRect(x: 360, y: 0, width: 240, height: 400))
+        return bright.composited(over: mid.composited(over: dark))
+            .transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+    }
+
+    /// Mean channel change (0...255) in the dark, mid and bright regions, away from the tonal boundaries.
+    private func regionChange(
+        _ edit: (inout EditParams) -> Void, scale: CGFloat = 1
+    ) throws -> (dark: Double, mid: Double, bright: Double, brightMax: Double) {
+        let base = EditParams.identity(for: size)
+        var edited = base
+        edit(&edited)
+        let before = try rgba(EditRenderer.render(EditRenderer.apply(base, to: tonalImage(scale: scale))))
+        let after = try rgba(EditRenderer.render(EditRenderer.apply(edited, to: tonalImage(scale: scale))))
+        let width = Int(600 * scale), height = Int(400 * scale)
+        func mean(_ data: [UInt8], columns: Range<Int>) -> Double {
+            var sum = 0.0, count = 0.0
+            for y in 0..<height {
+                for x in columns {
+                    sum += Double(data[(y * width + x) * 4]) + Double(data[(y * width + x) * 4 + 1]) + Double(data[(y * width + x) * 4 + 2])
+                    count += 3
+                }
+            }
+            return sum / count
+        }
+        let darkColumns = (width / 20)..<(width / 5)
+        let midColumns = (width * 2 / 5 + width / 30)..<(width * 3 / 5 - width / 30)
+        let brightColumns = (width * 4 / 5)..<(width * 19 / 20)
+        let brightMax = brightColumns.map { Double(after[(height / 2 * width + $0) * 4]) }.max() ?? 0
+        return (mean(after, columns: darkColumns) - mean(before, columns: darkColumns),
+                mean(after, columns: midColumns) - mean(before, columns: midColumns),
+                mean(after, columns: brightColumns) - mean(before, columns: brightColumns),
+                brightMax)
+    }
+
+    @Test func shadowsLiftDarkRegionsMuchMoreThanBrightAndMidtones() throws {
+        let change = try regionChange { $0.shadows = 100 }
+        #expect(change.dark > 25)
+        #expect(change.mid < 3)
+        #expect(change.bright < 1)
+        #expect(change.dark > change.bright * 10)
+    }
+
+    @Test func negativeShadowsDeepenDarkRegions() throws {
+        let change = try regionChange { $0.shadows = -100 }
+        #expect(change.dark < -10)
+        #expect(abs(change.mid) < 3)
+    }
+
+    @Test func negativeHighlightsDarkenBrightRegionsMuchMoreThanDarkAndMidtones() throws {
+        let change = try regionChange { $0.highlights = -100 }
+        #expect(change.bright < -25)
+        #expect(abs(change.mid) < 3)
+        #expect(abs(change.dark) < 1)
+    }
+
+    @Test func positiveHighlightsBrightenBrightRegionsWithoutClipping() throws {
+        let change = try regionChange { $0.highlights = 100 }
+        #expect(change.bright > 5)
+        #expect(abs(change.mid) < 3)
+        #expect(abs(change.dark) < 1)
+        #expect(change.brightMax < 255)
+    }
+
+    @Test(arguments: [-100.0, 100.0])
+    func shadowsLookTheSameAtAnyScale(shadows: Double) throws {
+        let full = try regionChange { $0.shadows = shadows }
+        let half = try regionChange({ $0.shadows = shadows }, scale: 0.5)
+        #expect(abs(full.dark - half.dark) < 2)
+        #expect(abs(full.bright - half.bright) < 2)
+    }
+
+    @Test(arguments: [-100.0, 100.0])
+    func highlightsLookTheSameAtAnyScale(highlights: Double) throws {
+        let full = try regionChange { $0.highlights = highlights }
+        let half = try regionChange({ $0.highlights = highlights }, scale: 0.5)
+        #expect(abs(full.dark - half.dark) < 2)
+        #expect(abs(full.bright - half.bright) < 2)
+    }
+
+    @Test func zeroHighlightsAndShadowsLeaveImageUnchanged() throws {
+        let params = EditParams.identity(for: size)
+        let before = try rgba(EditRenderer.render(tonalImage()))
+        let after = try rgba(EditRenderer.render(EditRenderer.apply(params, to: tonalImage())))
+        #expect(before == after)
+    }
+
+    /// Key regression against washed-out colour: lifting a saturated dark patch keeps its chroma.
+    @Test func shadowsKeepChromaOfSaturatedDarkPatch() throws {
+        let red = CIImage(color: CIColor(red: 0.30, green: 0.05, blue: 0.04))
+            .cropped(to: CGRect(x: 0, y: 0, width: 600, height: 400))
+        var params = EditParams.identity(for: size)
+        params.shadows = 100
+        let before = try rgba(EditRenderer.render(red))
+        let after = try rgba(EditRenderer.render(EditRenderer.apply(params, to: red)))
+        func chroma(_ data: [UInt8]) -> (saturation: Double, gOverR: Double) {
+            let i = (200 * 600 + 300) * 4
+            let r = Double(data[i]), g = Double(data[i + 1]), b = Double(data[i + 2])
+            return ((max(r, g, b) - min(r, g, b)) / max(r, g, b), g / r)
+        }
+        let original = chroma(before), lifted = chroma(after)
+        #expect(Double(after[(200 * 600 + 300) * 4]) > Double(before[(200 * 600 + 300) * 4]) + 20)
+        #expect(abs(lifted.saturation - original.saturation) < 0.06)
+        #expect(abs(lifted.gOverR - original.gOverR) < 0.06)
+    }
+
+    /// A fine checker inside a dark region keeps its relative contrast (max/min luminance ratio).
+    @Test func shadowsPreserveLocalContrast() throws {
+        let dark = CIImage(color: CIColor(red: 0.12, green: 0.12, blue: 0.12))
+            .cropped(to: CGRect(x: 0, y: 0, width: 600, height: 400))
+        let bright = CIImage(color: CIColor(red: 0.17, green: 0.17, blue: 0.17))
+            .cropped(to: CGRect(x: 0, y: 0, width: 600, height: 400))
+        let checker = CIFilter(name: "CICheckerboardGenerator", parameters: [
+            "inputCenter": CIVector(x: 0, y: 0), "inputWidth": 4.0, "inputSharpness": 1.0,
+            "inputColor0": CIColor(red: 1, green: 1, blue: 1), "inputColor1": CIColor(red: 0, green: 0, blue: 0),
+        ])!.outputImage!.cropped(to: CGRect(x: 0, y: 0, width: 600, height: 400))
+        let image = bright.applyingFilter("CIBlendWithMask", parameters: [
+            kCIInputBackgroundImageKey: dark, kCIInputMaskImageKey: checker,
+        ])
+        var params = EditParams.identity(for: size)
+        params.shadows = 100
+        func contrast(_ data: [UInt8]) -> Double {
+            var lo = 255.0, hi = 0.0
+            for y in 100..<300 { for x in 100..<500 {
+                let v = Double(data[(y * 600 + x) * 4 + 1])
+                lo = min(lo, v); hi = max(hi, v)
+            } }
+            return hi / lo
+        }
+        let beforePixels = try rgba(EditRenderer.render(image))
+        let afterPixels = try rgba(EditRenderer.render(EditRenderer.apply(params, to: image)))
+        let before = contrast(beforePixels), after = contrast(afterPixels)
+        let probe = (200 * 600 + 300) * 4 + 1
+        #expect(afterPixels[probe] > beforePixels[probe] + 10 || afterPixels[probe + 4] > beforePixels[probe + 4] + 10)
+        #expect(before > 1.3)
+        #expect(abs(after - before) / before < 0.1)
+    }
+
+    /// Halo regression. A hard edge (dark 0.08 next to bright 0.85, as a step and as a square) must not get a
+    /// bright or dark band along it: close to the edge each side stays at its far-field level, and the profile
+    /// across the edge is monotonic.
+    enum HaloShape: CaseIterable { case step, square }
+
+    private func haloImage(_ shape: HaloShape) -> CIImage {
+        let bright = CIImage(color: CIColor(red: 0.85, green: 0.85, blue: 0.85)).cropped(to: CGRect(x: 0, y: 0, width: 600, height: 400))
+        let darkColor = CIColor(red: 0.08, green: 0.08, blue: 0.08)
+        let rect = shape == .step ? CGRect(x: 0, y: 0, width: 300, height: 400) : CGRect(x: 200, y: 100, width: 200, height: 200)
+        return CIImage(color: darkColor).cropped(to: rect).composited(over: bright)
+    }
+
+    @Test(arguments: HaloShape.allCases, [(100.0, 0.0), (0.0, -100.0), (100.0, -100.0)])
+    func edgesGetNoHalo(shape: HaloShape, sliders: (shadows: Double, highlights: Double)) throws {
+        var params = EditParams.identity(for: size)
+        params.shadows = sliders.shadows
+        params.highlights = sliders.highlights
+        let pixels = try rgba(EditRenderer.render(EditRenderer.apply(params, to: haloImage(shape))))
+        func value(_ x: Int) -> Double { Double(pixels[(200 * 600 + x) * 4 + 1]) }
+        // Edge at x = 300 (step) or x = 200 (square, dark inside); (dark range, bright range).
+        let edge = shape == .step ? 300 : 200
+        let darkFar = shape == .step ? 100 : 300
+        let brightFar = shape == .step ? 500 : 50
+        let darkNear = shape == .step ? (edge - 40)..<edge : edge..<(edge + 40)
+        let brightNear = shape == .step ? edge..<(edge + 40) : (edge - 40)..<edge
+        let tolerance = 5.0
+        for x in darkNear { #expect(abs(value(x) - value(darkFar)) <= tolerance, "dark side x=\(x)") }
+        for x in brightNear { #expect(abs(value(x) - value(brightFar)) <= tolerance, "bright side x=\(x)") }
+        let profile = (edge - 40)..<(edge + 40)
+        let sign = shape == .step ? 1.0 : -1.0
+        for x in profile.dropFirst() {
+            #expect(sign * (value(x) - value(x - 1)) >= -2, "not monotonic at x=\(x)")
+        }
+    }
+
     private func meanLuma(url: URL, exposure: Double) throws -> Double {
         var params = EditParams.identity(for: size)
         params.exposure = exposure

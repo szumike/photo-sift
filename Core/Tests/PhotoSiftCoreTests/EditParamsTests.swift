@@ -9,7 +9,8 @@ struct EditParamsTests {
         let params = EditParams.identity(for: CGSize(width: 3936, height: 2624))
         #expect(params.orientation == .landscape)
         #expect(params.crop == CGRect(x: 0, y: 0, width: 1, height: 1))
-        #expect(params.angle == 0 && params.temperature == 0 && params.tint == 0 && params.exposure == 0)
+        #expect(params.angle == 0 && params.temperature == 0 && params.tint == 0 && params.exposure == 0
+                && params.highlights == 0 && params.shadows == 0)
         #expect(params.isIdentity)
     }
 
@@ -31,7 +32,11 @@ struct EditParamsTests {
         tinted.tint = -5
         var exposed = base
         exposed.exposure = 0.5
-        for changed in [cropped, rotated, warm, tinted, exposed] {
+        var highlighted = base
+        highlighted.highlights = -20
+        var shadowed = base
+        shadowed.shadows = 30
+        for changed in [cropped, rotated, warm, tinted, exposed, highlighted, shadowed] {
             #expect(!changed.isIdentity)
         }
     }
@@ -50,6 +55,22 @@ struct EditParamsTests {
         #expect(params.fingerprint == "74e35bf6d43f61cf3edee5c2def82c94")
     }
 
+    @Test func fingerprintIgnoresUnusedHighlightsAndShadows() {
+        let base = EditParams(
+            crop: CGRect(x: 0.1, y: 0.2, width: 0.5, height: 0.25),
+            orientation: .landscape, angle: 3.5, temperature: 20, tint: -10, exposure: 0.5
+        )
+        // Same value as before highlights and shadows existed.
+        #expect(base.fingerprint == "74e35bf6d43f61cf3edee5c2def82c94")
+        var highlighted = base
+        highlighted.highlights = 10
+        var shadowed = base
+        shadowed.shadows = 10
+        #expect(highlighted.fingerprint != base.fingerprint)
+        #expect(shadowed.fingerprint != base.fingerprint)
+        #expect(highlighted.fingerprint != shadowed.fingerprint)
+    }
+
     @Test func fingerprintDistinguishesEveryField() {
         let base = EditParams.identity(for: CGSize(width: 600, height: 400))
         var variants: [EditParams] = [base]
@@ -59,6 +80,8 @@ struct EditParamsTests {
         v = base; v.temperature = 1; variants.append(v)
         v = base; v.tint = 1; variants.append(v)
         v = base; v.exposure = 1; variants.append(v)
+        v = base; v.highlights = 1; variants.append(v)
+        v = base; v.shadows = 1; variants.append(v)
         #expect(Set(variants.map(\.fingerprint)).count == variants.count)
     }
 
@@ -77,7 +100,9 @@ struct EditParamsTests {
             angle: -12.3,
             temperature: 45,
             tint: -7,
-            exposure: -1.25
+            exposure: -1.25,
+            highlights: -40,
+            shadows: 25
         )
         let data = try JSONEncoder().encode(params)
         let decoded = try JSONDecoder().decode(EditParams.self, from: data)

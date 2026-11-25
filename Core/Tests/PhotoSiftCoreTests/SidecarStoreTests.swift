@@ -20,7 +20,9 @@ struct SidecarStoreTests {
         angle: -3.25,
         temperature: 12.5,
         tint: -7,
-        exposure: 0.75
+        exposure: 0.75,
+        highlights: -30,
+        shadows: 45
     )
 
     private func text(_ url: URL) throws -> String {
@@ -101,6 +103,27 @@ struct SidecarStoreTests {
         var expected = edit
         expected.exposure = 0
         #expect(try store.read(at: url).edit == expected)
+    }
+
+    @Test func missingHighlightsAndShadowsFieldsReadAsZero() throws {
+        let url = try makeURL()
+        try store.write(SidecarState(edit: edit, markedForDarkroom: false), to: url)
+        let legacy = try text(url)
+            .components(separatedBy: "\n")
+            .filter { !$0.contains("photosift:highlights") && !$0.contains("photosift:shadows") }
+            .joined(separator: "\n")
+        try legacy.write(to: url, atomically: true, encoding: .utf8)
+        var expected = edit
+        expected.highlights = 0
+        expected.shadows = 0
+        #expect(try store.read(at: url).edit == expected)
+    }
+
+    @Test func writesHighlightsAndShadowsFields() throws {
+        let url = try makeURL()
+        try store.write(SidecarState(edit: edit, markedForDarkroom: false), to: url)
+        let xmp = try text(url)
+        #expect(xmp.contains("highlights") && xmp.contains("shadows"))
     }
 
     @Test func writesExposureField() throws {

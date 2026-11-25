@@ -1,9 +1,10 @@
 import PhotoSiftCore
 import SwiftUI
 
-/// "Światło i kolor": the exposure slider and "Balans bieli" (temperature and tint sliders with copy and paste buttons).
+/// "Światło i kolor": the exposure, highlights and shadows sliders and "Balans bieli" (temperature and tint sliders with copy and paste buttons).
 /// Identifiers: `edit.copyWB`, `edit.pasteWB`, `edit.temperature`, `edit.temperature.value`,
-/// `edit.tint`, `edit.tint.value`, `edit.exposure`, `edit.exposure.value`.
+/// `edit.tint`, `edit.tint.value`, `edit.exposure`, `edit.exposure.value`,
+/// `edit.highlights`, `edit.highlights.value`, `edit.shadows`, `edit.shadows.value`.
 struct WhiteBalanceSection: View {
     let session: Session
 
@@ -15,6 +16,18 @@ struct WhiteBalanceSection: View {
                 title: "Ekspozycja", id: "edit.exposure",
                 value: binding(params?.exposure ?? 0) { $0.exposure = $1 },
                 range: -2...2, step: 0.05, neutral: 0, track: .exposure, format: Self.formatEV,
+                onEditingChanged: gesture
+            )
+            EditSlider(
+                title: "Światła", id: "edit.highlights",
+                value: binding(params?.highlights ?? 0) { $0.highlights = $1 },
+                range: -100...100, step: 1, neutral: 0, track: .plain, format: Self.format,
+                onEditingChanged: gesture
+            )
+            EditSlider(
+                title: "Cienie", id: "edit.shadows",
+                value: binding(params?.shadows ?? 0) { $0.shadows = $1 },
+                range: -100...100, step: 1, neutral: 0, track: .plain, format: Self.format,
                 onEditingChanged: gesture
             )
             .padding(.bottom, 8)
