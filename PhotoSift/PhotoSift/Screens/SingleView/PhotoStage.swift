@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The area above the filmstrip: the photo (with 100% zoom under the cursor), `EditStage` while editing,
 /// or the empty-filter message.
-/// Identifiers: `stage`, `stage.photo`, `stage.zoomLabel`, `stage.beforeLabel`, `stage.showAll`.
+/// Identifiers: `stage`, `stage.photo`, `stage.zoomLabel`, `stage.beforeLabel`, `stage.rawLabel`, `stage.rawImage`, `stage.showAll`.
 struct PhotoStage: View {
     let session: Session
     let albumStatuses: [String: ExportStatus]
@@ -23,6 +23,8 @@ struct PhotoStage: View {
 
     @State private var fitted: LoadedImage?
     @State private var full: LoadedImage?
+    /// RAW decode of the photo shown while B is held; kept after release so a quick re-hold is instant.
+    @State private var raw: LoadedImage?
     /// Cursor position in the stage, used to anchor the 100% zoom.
     @State private var cursor = CGPoint.zero
 
@@ -47,6 +49,7 @@ struct PhotoStage: View {
                 } else {
                     photo(item)
                 }
+                if viewState.isRawHeld, item.rawURL != nil { rawImage(item) }
                 labels(item)
             }
         } else if session.photos.isEmpty {
@@ -122,6 +125,26 @@ struct PhotoStage: View {
         }
     }
 
+    /// The plain RAW decode, fitted like the preview, covering the photo (browse and edit mode alike).
+    private func rawImage(_ item: PhotoItem) -> some View {
+        ZStack {
+            Palette.stage
+            if let raw, raw.id == item.id {
+                Image(decorative: raw.image, scale: 1)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(8)
+                    .accessibilityIdentifier("stage.rawImage")
+            }
+        }
+        .task(id: item.id) {
+            guard raw?.id != item.id else { return }
+            guard let image = try? await model.loader.rawPreview(for: item, maxPixelSize: ImageLoader.defaultPreviewMaxPixelSize),
+                  !Task.isCancelled else { return }
+            raw = LoadedImage(id: item.id, image: image)
+        }
+    }
+
     /// The photo at the zoom level (100% = one image pixel per physical screen pixel) with the point under the cursor kept in place.
     private func zoomedImage(_ image: CGImage, in size: CGSize) -> some View {
         let scale = NSScreen.main?.backingScaleFactor ?? 2
@@ -188,7 +211,9 @@ struct PhotoStage: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
             HStack {
                 Spacer()
-                if viewState.isBeforeHeld {
+                if viewState.isRawHeld {
+                    pill(rawLabel(for: item), id: "stage.rawLabel", foreground: Color(white: 0.07), background: Color(white: 0.94, opacity: 0.92))
+                } else if viewState.isBeforeHeld {
                     pill("Przed", id: "stage.beforeLabel", foreground: Color(white: 0.07), background: Color(white: 0.94, opacity: 0.92))
                 } else if viewState.isZoomHeld && zoomIsActive(for: item) {
                     pill(model.zoomLabel, id: "stage.zoomLabel", foreground: .white, background: Color(red: 24 / 255, green: 24 / 255, blue: 26 / 255, opacity: 0.86))
@@ -199,6 +224,11 @@ struct PhotoStage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .allowsHitTesting(false)
+    }
+
+    private func rawLabel(for item: PhotoItem) -> String {
+        guard item.rawURL != nil else { return "Brak RAW" }
+        return raw?.id == item.id ? "RAW" : "RAW…"
     }
 
     /// Zoom works everywhere except the crop tool on an editable photo (same rule as `EditStage`).

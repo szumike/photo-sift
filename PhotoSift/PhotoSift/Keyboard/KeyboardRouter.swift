@@ -3,7 +3,7 @@ import PhotoSiftCore
 
 /// Maps every shortcut of `docs/workflow.md` to `Session` and `AppModel` actions.
 ///
-/// Uses a local `NSEvent` monitor, so it sees keyUp (hold Z and M) and ⌘-shortcuts before the menu does,
+/// Uses a local `NSEvent` monitor, so it sees keyUp (hold Z, M and B) and ⌘-shortcuts before the menu does,
 /// whatever view has focus. A text field or a focused slider keeps its own keys.
 @MainActor
 final class KeyboardRouter {
@@ -75,7 +75,7 @@ final class KeyboardRouter {
         }
         guard let session = model.session else { return false }
         guard model.screen == .browse else { return false }
-        if event.isARepeat && modifiers.isEmpty && [.character("z"), .character("m"), .character("c"), .delete].contains(key) { return true }
+        if event.isARepeat && modifiers.isEmpty && [.character("z"), .character("m"), .character("b"), .character("c"), .delete].contains(key) { return true }
         return session.viewMode == .grid
             ? handleGrid(key, modifiers, session, model)
             : handleSingle(key, modifiers, session, model)
@@ -84,6 +84,7 @@ final class KeyboardRouter {
     private func releaseHold(_ key: Key, _ viewState: ViewState) {
         if key == .character("z") { viewState.isZoomHeld = false }
         if key == .character("m") { viewState.isBeforeHeld = false }
+        if key == .character("b") { viewState.isRawHeld = false }
     }
 
     private func handleSingle(_ key: Key, _ modifiers: NSEvent.ModifierFlags, _ session: Session, _ model: AppModel) -> Bool {
@@ -102,6 +103,8 @@ final class KeyboardRouter {
             if canZoom(session) && session.currentID != nil { viewState.isZoomHeld = true }
         case ([], .character("m")):
             if session.currentID != nil { viewState.isBeforeHeld = true }
+        case ([], .character("b")):
+            if session.currentID != nil { viewState.isRawHeld = true }
         case ([], .escape):
             if session.mode == .edit { session.exitEdit() }
         case ([], .enter):

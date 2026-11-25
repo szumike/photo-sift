@@ -17,7 +17,7 @@ Photo Sift służy do szybkiej selekcji zdjęć z Sony A7 III (JPEG + ARW) na Ma
 
 Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pokazuje jako jedną pozycję.
 
-- Podgląd zawsze pochodzi z JPEG-a. RAW nie jest dekodowany.
+- Podgląd zawsze pochodzi z JPEG-a. RAW jest dekodowany tylko na czas przytrzymania B (podgląd RAW).
 - Plik ARW bez pary JPEG pokazuję z podglądu osadzonego w pliku RAW. Takiego zdjęcia nie da się edytować i nie trafia do eksportu. Można je usunąć albo wysłać do Ciemni.
 - Jedyne decyzje o zdjęciu to **usuń** i **Ciemnia**. Nie ma ocen, gwiazdek ani etykiet.
 - ARW-y zdjęć zostawionych jako JPEG zostają w folderze sesji. Aplikacja nic z nimi nie robi.
@@ -27,6 +27,7 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 - **Metadane przy każdym zdjęciu:** model aparatu, obiektyw, ISO, przysłona (f), czas naświetlania, ogniskowa, data wykonania.
 - **Zoom** w miejscu kursora, do oceny ostrości: przytrzymanie Z albo przytrzymanie przycisku myszy na zdjęciu. Poziom powiększenia (100 / 150 / 200 / 300%, domyślnie 100%) wybiera się w oknie Ustawienia (⌘,); aplikacja go pamięta.
 - **Przed/po:** przytrzymanie M pokazuje zdjęcie bez zmian światła i koloru (temperatura, tint, ekspozycja). Kadr i prostowanie zostają widoczne.
+- **Podgląd RAW:** przytrzymanie B pokazuje prawdziwe wywołanie pliku ARW (bez edycji Photo Sift), do porównania z JPEG-iem. Zdjęcie bez RAW-a pokazuje „Brak RAW”.
 - **Pamiętanie pozycji:** po ponownym otwarciu folderu wracam do zdjęcia, na którym skończyłem.
 - **Filtry:** wszystkie, Ciemnia, edytowane.
 - **Siatka wszystkich zdjęć:** widok miniatur całego folderu. G przełącza siatkę ↔ pojedyncze zdjęcie, a Enter lub dwuklik otwiera zdjęcie z siatki. W siatce ⌫ i C działają na wszystkie zaznaczone zdjęcia.
@@ -45,6 +46,7 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 | Ciemnia (przełącz) | C |
 | Zoom (poziom z Ustawień) | przytrzymaj Z |
 | Przed/po | przytrzymaj M |
+| Podgląd RAW | przytrzymaj B |
 | Edycja: światło i kolor | E |
 | Edycja: kadr i prostowanie | R |
 | Powrót z edycji do przeglądania | D (w narzędziu Kadr także Enter) |
