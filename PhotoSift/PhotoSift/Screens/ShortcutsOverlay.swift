@@ -34,6 +34,7 @@ struct ShortcutsOverlay: View {
         Group(title: "Podgląd (przytrzymaj)", items: [
             Shortcut(label: "Zoom", keys: ["Z"]),
             Shortcut(label: "Przed/po", keys: ["M"]),
+            Shortcut(label: "Podgląd RAW", keys: ["B"]),
         ]),
         Group(title: "Edycja", items: [
             Shortcut(label: "Światło i kolor", keys: ["E"]),

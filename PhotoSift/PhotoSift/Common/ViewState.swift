@@ -10,6 +10,8 @@ final class ViewState {
     var isZoomHeld = false
     /// M is held: show the photo without its edit.
     var isBeforeHeld = false
+    /// B is held: show the photo's RAW decode.
+    var isRawHeld = false
     /// Zoom anchor, normalized 0...1 in the photo; written by the photo view on mouse move.
     var zoomPoint = CGPoint(x: 0.5, y: 0.5)
     /// Column count of the grid; written by `GridView`, read by `KeyboardRouter` for ↑ and ↓.
@@ -38,5 +40,6 @@ final class ViewState {
     func resetHolds() {
         isZoomHeld = false
         isBeforeHeld = false
+        isRawHeld = false
     }
 }

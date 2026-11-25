@@ -1,14 +1,16 @@
 import CoreGraphics
+import CoreImage
 import Foundation
 import ImageIO
 
 public enum ImageLoaderError: Error, Sendable {
     case noSource(id: String)
     case decodingFailed(URL)
+    case noRaw(id: String)
 }
 
 /// Decodes images for the UI. Always applies the EXIF orientation.
-/// The RAW itself is never decoded: a RAW-only photo uses the preview embedded in the ARW.
+/// The RAW is decoded only by `rawPreview(for:maxPixelSize:)`; otherwise a RAW-only photo uses the preview embedded in the ARW.
 public actor ImageLoader {
     public enum Kind: Hashable, Sendable {
         case thumbnail
@@ -31,6 +33,10 @@ public actor ImageLoader {
     private var cache: [Key: CGImage] = [:]
     private var recency: [Key] = []
     private var prefetchTasks: [Task<Void, Never>] = []
+    private var rawCache: [String: CGImage] = [:]
+    private var rawRecency: [String] = []
+    private let rawCacheLimit = 4
+    private static let rawContext = CIContext()
 
     /// Number of reads served from the cache.
     public private(set) var cacheHitCount = 0
@@ -68,6 +74,25 @@ public actor ImageLoader {
     /// Full resolution (for 100% zoom). A RAW-only photo is limited to its embedded preview.
     public func fullResolution(for item: PhotoItem) throws -> CGImage {
         try image(for: item, kind: .full)
+    }
+
+    /// A real RAW decode (`CIRAWFilter`, as-shot settings, no Photo Sift edit) scaled so its longest side is at most
+    /// `maxPixelSize`. Slow, so it is never prefetched; the last few results are cached.
+    public func rawPreview(for item: PhotoItem, maxPixelSize: Int) async throws -> CGImage {
+        guard let url = item.rawURL else { throw ImageLoaderError.noRaw(id: item.id) }
+        let key = "\(item.id)@\(maxPixelSize)"
+        if let cached = rawCache[key] {
+            cacheHitCount += 1
+            rawRecency.removeAll { $0 == key }
+            rawRecency.append(key)
+            return cached
+        }
+        let decoded = try await Self.decodeRaw(url, maxPixelSize: maxPixelSize)
+        rawCache[key] = decoded
+        rawRecency.removeAll { $0 == key }
+        rawRecency.append(key)
+        while rawRecency.count > rawCacheLimit { rawCache[rawRecency.removeFirst()] = nil }
+        return decoded
     }
 
     /// Warms the preview cache for the given photos in the background. Unknown ids are ignored.
@@ -146,6 +171,17 @@ public actor ImageLoader {
         options[kCGImageSourceThumbnailMaxPixelSize] = maxPixelSize
 
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        else { throw ImageLoaderError.decodingFailed(url) }
+        return image
+    }
+
+    @concurrent nonisolated private static func decodeRaw(_ url: URL, maxPixelSize: Int) async throws -> CGImage {
+        guard let filter = CIRAWFilter(imageURL: url) else { throw ImageLoaderError.decodingFailed(url) }
+        let native = filter.nativeSize
+        let longest = max(native.width, native.height)
+        if longest > 0 { filter.scaleFactor = Float(min(1, Double(maxPixelSize) / longest)) }
+        guard let output = filter.outputImage,
+              let image = rawContext.createCGImage(output, from: output.extent)
         else { throw ImageLoaderError.decodingFailed(url) }
         return image
     }
