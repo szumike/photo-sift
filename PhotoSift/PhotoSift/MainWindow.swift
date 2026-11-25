@@ -28,6 +28,11 @@ final class AppModel {
     }
     static let zoomLevels: [Double] = [1, 1.5, 2, 3]
 
+    /// Where "Do Ciemni" sends the RAWs; persisted under `darkroom.target`.
+    var darkroomTarget: DarkroomTarget {
+        didSet { defaults.set(darkroomTarget.rawValue, forKey: Self.darkroomTargetKey) }
+    }
+
     let viewState = ViewState()
     let loader = ImageLoader()
     @ObservationIgnored let recentFoldersStore: RecentFoldersStore
@@ -35,6 +40,7 @@ final class AppModel {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private static let filmstripHiddenKey = "ui.filmstripHidden"
     @ObservationIgnored private static let zoomLevelKey = "ui.zoomLevel"
+    @ObservationIgnored private static let darkroomTargetKey = "darkroom.target"
     @ObservationIgnored private let keyboard = KeyboardRouter()
     @ObservationIgnored private var didStart = false
     @ObservationIgnored private var terminationObserver: (any NSObjectProtocol)?
@@ -45,6 +51,7 @@ final class AppModel {
         filmstripHidden = defaults.bool(forKey: Self.filmstripHiddenKey)
         let storedZoom = defaults.double(forKey: Self.zoomLevelKey)
         zoomLevel = Self.zoomLevels.contains(storedZoom) ? storedZoom : 1
+        darkroomTarget = defaults.string(forKey: Self.darkroomTargetKey).flatMap(DarkroomTarget.init) ?? .folder
         recentFoldersStore = RecentFoldersStore(defaults: defaults)
         resumeStore = ResumeStore(defaults: defaults)
         terminationObserver = NotificationCenter.default.addObserver(

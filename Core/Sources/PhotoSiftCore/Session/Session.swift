@@ -31,6 +31,8 @@ public final class Session {
     public private(set) var toast: Toast?
     public private(set) var isExporting = false
     public private(set) var exportProgress: ExportProgress?
+    /// True while RAWs are being sent to Darkroom (importing into Photos can take a few seconds).
+    public private(set) var isSendingToDarkroom = false
 
     @ObservationIgnored private let store = SidecarStore()
     @ObservationIgnored private let saveDelay: Duration
@@ -48,19 +50,23 @@ public final class Session {
     /// One exporter for the session's lifetime: its ownership cache keeps re-planning cheap.
     @ObservationIgnored private let exporter: AlbumExporter
     @ObservationIgnored private var exportTask: Task<ExportSummary, Never>?
+    @ObservationIgnored private let photosImporter: any PhotosImporting
 
     // MARK: Init
 
     /// - Parameters:
     ///   - resumeID: photo to start on (resume); ignored when it is not in the folder.
     ///   - saveDelay: pause after the last edit before it is written to XMP.
+    ///   - photosImporter: imports RAWs into Apple Photos for the `.photos` Darkroom target.
     public init(
         folder: URL,
         resumeID: String? = nil,
-        saveDelay: Duration = .milliseconds(300)
+        saveDelay: Duration = .milliseconds(300),
+        photosImporter: any PhotosImporting = PhotoKitImporter()
     ) throws {
         self.folder = folder
         self.saveDelay = saveDelay
+        self.photosImporter = photosImporter
         exporter = AlbumExporter(sessionFolder: folder)
         let scanned = try FolderScanner.scan(folder: folder)
         photos = scanned
@@ -83,7 +89,7 @@ public final class Session {
     public var visiblePhotos: [PhotoItem] {
         switch filter {
         case .all: photos
-        case .darkroom: photos.filter { isMarked($0) || $0.isSentToDarkroom }
+        case .darkroom: photos.filter { isMarked($0) || isSent($0) }
         case .edited: photos.filter { states[$0.id]?.edit != nil }
         }
     }
@@ -97,7 +103,7 @@ public final class Session {
 
     /// Marked for Darkroom with a RAW still in the session folder.
     public var darkroomCount: Int {
-        photos.filter { isMarked($0) && !$0.isSentToDarkroom && $0.rawURL != nil }.count
+        photos.filter { isMarked($0) && !isSent($0) && $0.rawURL != nil }.count
     }
 
     public func photo(id: String) -> PhotoItem? { photos.first { $0.id == id } }
@@ -105,9 +111,15 @@ public final class Session {
     public func isMarked(_ item: PhotoItem) -> Bool { states[item.id]?.markedForDarkroom ?? false }
     public func isEdited(_ item: PhotoItem) -> Bool { states[item.id]?.edit != nil }
 
+    /// The RAW was imported into Apple Photos (recorded in the XMP).
+    public func isInPhotos(_ item: PhotoItem) -> Bool { states[item.id]?.photosAssetID != nil }
+
+    /// The RAW already left for Darkroom: moved to `Ciemnia/` or imported into Photos.
+    public func isSent(_ item: PhotoItem) -> Bool { item.isSentToDarkroom || isInPhotos(item) }
+
     /// Darkroom photos and RAW-only photos cannot be edited.
     public func isEditLocked(_ item: PhotoItem) -> Bool {
-        item.isRawOnly || item.isSentToDarkroom || isMarked(item)
+        item.isRawOnly || isSent(item) || isMarked(item)
     }
 
     /// Edit of the current photo, or the identity edit when it has none.
@@ -289,12 +301,13 @@ public final class Session {
     public func toggleDarkroom() {
         let items = targetIDs.compactMap(photo(id:))
         guard !items.isEmpty else { return }
-        let eligible = items.filter { $0.rawURL != nil && !$0.isSentToDarkroom }
+        if releaseVanishedPhotosAssets(of: items) > 0 { return }
+        let eligible = items.filter { $0.rawURL != nil && !isSent($0) }
         let skipped = items.count - eligible.count
 
         guard !eligible.isEmpty else {
             if let blocked = items.first {
-                toast = blocked.isSentToDarkroom ? alreadySentToast(blocked.id) : Toast(Self.noRawText)
+                toast = isSent(blocked) ? alreadySentToast(blocked) : Toast(Self.noRawText)
             }
             return
         }
@@ -445,9 +458,20 @@ public final class Session {
 
     // MARK: Darkroom and export
 
-    public func sendToDarkroom() async {
+    /// Sends the marked RAWs to `target`: moved to `Ciemnia/`, or imported into Apple Photos.
+    public func sendToDarkroom(target: DarkroomTarget = .folder) async {
+        guard !isSendingToDarkroom else { return }
+        isSendingToDarkroom = true
+        defer { isSendingToDarkroom = false }
         flushPendingSaves()
-        let items = photos.filter { isMarked($0) && !$0.isSentToDarkroom && $0.rawURL != nil }
+        switch target {
+        case .folder: await moveToDarkroomFolder()
+        case .photos: await importIntoPhotos()
+        }
+    }
+
+    private func moveToDarkroomFolder() async {
+        let items = photos.filter { isMarked($0) && !isSent($0) && $0.rawURL != nil }
         guard !items.isEmpty else { return }
         let folder = folder
         let report = await Task.detached { DarkroomMover(sessionFolder: folder).send(items) }.value
@@ -472,6 +496,79 @@ public final class Session {
             "Przeniesiono \(PolishPlural.rawFiles(report.moved.count)) do Ciemnia/",
             subtext: details.joined(separator: " ")
         )
+    }
+
+    private func importIntoPhotos() async {
+        let candidates = photos.filter { isMarked($0) && !$0.isSentToDarkroom && $0.rawURL != nil }
+        var items: [(id: String, rawURL: URL)] = []
+        for item in candidates {
+            if let assetID = states[item.id]?.photosAssetID, photosImporter.assetExists(assetID) {
+                continue
+            } else if let rawURL = item.rawURL {
+                items.append((item.id, rawURL))
+            }
+        }
+        guard !items.isEmpty else { return }
+        let albumTitle = folder.lastPathComponent
+
+        let report: PhotosImportReport
+        do {
+            report = try await photosImporter.importRaws(items, albumTitle: albumTitle)
+        } catch PhotosImportError.accessDenied {
+            toast = Toast(
+                "Brak dostępu do Zdjęć",
+                subtext: "Zezwól w Ustawieniach systemowych → Prywatność → Zdjęcia."
+            )
+            return
+        } catch {
+            let reason = (error as? PhotosImportError).flatMap { error -> String? in
+                if case .failed(let message) = error { return message }
+                return nil
+            } ?? error.localizedDescription
+            toast = Toast("Nie udało się dodać do Zdjęć", subtext: reason)
+            return
+        }
+
+        var failedIDs = report.failures.keys.sorted()
+        var added = 0
+        for item in items {
+            guard let assetID = report.assetIDs[item.id], let current = photo(id: item.id) else { continue }
+            var state = self.state(of: item.id)
+            state.photosAssetID = assetID
+            guard persistNow(state, for: current) else {
+                failedIDs.append(item.id)
+                continue
+            }
+            states[item.id] = state
+            histories[item.id] = nil
+            added += 1
+        }
+        refreshExportCount()
+
+        var details = ["Album „\(albumTitle)”. Pliki w folderze bez zmian."]
+        if !failedIDs.isEmpty { details.append("Błędy: \(failedIDs.joined(separator: ", ")).") }
+        toast = Toast("Dodano \(PolishPlural.rawFiles(added)) do Zdjęć", subtext: details.joined(separator: " "))
+    }
+
+    /// Clears the stored Photos asset of every photo whose asset the user deleted from the library, so it can be
+    /// sent again. Returns how many were cleared (with a toast).
+    private func releaseVanishedPhotosAssets(of items: [PhotoItem]) -> Int {
+        var released: [String] = []
+        for item in items {
+            guard let assetID = states[item.id]?.photosAssetID, !photosImporter.assetExists(assetID) else { continue }
+            var state = self.state(of: item.id)
+            state.photosAssetID = nil
+            guard persistNow(state, for: item) else { continue }
+            states[item.id] = state
+            released.append(item.id)
+        }
+        guard !released.isEmpty else { return 0 }
+        refreshExportCount()
+        toast = Toast(
+            "\(PolishPlural.photos(released.count)) usunięte ze Zdjęć",
+            subtext: "Zdjęcie jest znów oznaczone — możesz wysłać je ponownie."
+        )
+        return released.count
     }
 
     public func exportPlan() -> ExportPlan {
@@ -519,8 +616,11 @@ public final class Session {
 
     static let noRawText = "Brak pliku RAW — nie można wysłać do Ciemni"
 
-    private func alreadySentToast(_ id: String) -> Toast {
-        Toast("RAW jest już w Ciemnia/", subtext: "Cofniesz to, przenosząc \(id).ARW w Finderze.")
+    private func alreadySentToast(_ item: PhotoItem) -> Toast {
+        if isInPhotos(item) {
+            return Toast("RAW jest już w Zdjęciach", subtext: "Album „\(folder.lastPathComponent)”.")
+        }
+        return Toast("RAW jest już w Ciemnia/", subtext: "Cofniesz to, przenosząc \(item.id).ARW w Finderze.")
     }
 
     private func trashSubtext(_ types: [String]) -> String {

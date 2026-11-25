@@ -8,8 +8,8 @@ struct LockedEditPanel: View {
     let item: PhotoItem
 
     var body: some View {
-        let isRawOnlyLock = item.isRawOnly && !item.isSentToDarkroom && !session.isMarked(item)
-        let inDarkroom = item.isSentToDarkroom || session.isMarked(item)
+        let isRawOnlyLock = item.isRawOnly && !session.isSent(item) && !session.isMarked(item)
+        let inDarkroom = session.isSent(item) || session.isMarked(item)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "lock.fill")
@@ -19,13 +19,15 @@ struct LockedEditPanel: View {
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(Palette.amber)
             Text(inDarkroom
-                ? "Zdjęcie jest w Ciemni — obrobisz je w Lightroomie z pliku RAW."
+                ? (session.isInPhotos(item)
+                    ? "RAW jest w Zdjęciach — obrobisz go stamtąd."
+                    : "Zdjęcie jest w Ciemni — obrobisz je w Lightroomie z pliku RAW.")
                 : "Brak JPEG-a. Photo Sift edytuje tylko JPEG-i.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(.white.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("edit.locked.text")
-            if !item.isSentToDarkroom && session.isMarked(item) {
+            if !session.isSent(item) && session.isMarked(item) {
                 Button {
                     session.toggleDarkroom()
                 } label: {

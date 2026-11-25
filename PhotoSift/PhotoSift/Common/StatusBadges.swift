@@ -33,9 +33,9 @@ struct StatusBadges: View {
             if item.isRawOnly {
                 badge("Tylko RAW", icon: "photo", color: Color(white: 0.9), id: "badge.rawOnly", help: "Tylko RAW · podgląd z miniatury w ARW")
             }
-            if session.isMarked(item) || item.isSentToDarkroom {
+            if session.isMarked(item) || session.isSent(item) {
                 badge(
-                    item.isSentToDarkroom ? "Ciemnia · RAW przeniesiony" : "Ciemnia",
+                    session.isInPhotos(item) ? "Ciemnia · RAW w Zdjęciach" : session.isSent(item) ? "Ciemnia · RAW przeniesiony" : "Ciemnia",
                     icon: "moon.fill", color: Palette.amber, id: "badge.darkroom", help: "Ciemnia"
                 )
             }

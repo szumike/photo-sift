@@ -107,7 +107,7 @@ struct InfoPanel: View {
     }
 
     private func stateSection(_ item: PhotoItem) -> some View {
-        let marked = session.isMarked(item) || item.isSentToDarkroom
+        let marked = session.isMarked(item) || session.isSent(item)
         let edit = editText(item)
         return VStack(alignment: .leading, spacing: 10) {
             Text("Stan")
@@ -115,7 +115,7 @@ struct InfoPanel: View {
                 .foregroundStyle(Palette.secondaryText)
             stateRow(
                 "moon.fill", "Ciemnia",
-                marked ? (item.isSentToDarkroom ? "RAW w Ciemnia/" : "Oznaczone") : "Nie",
+                marked ? (session.isSent(item) ? (session.isInPhotos(item) ? "RAW w Zdjęciach" : "RAW w Ciemnia/") : "Oznaczone") : "Nie",
                 color: marked ? Palette.amber : Palette.secondaryText, id: "info.state.darkroom"
             )
             stateRow(

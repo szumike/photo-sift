@@ -94,7 +94,7 @@ struct MainToolbar: View {
 
     private func filters(_ session: Session) -> some View {
         let all = session.photos.count
-        let darkroom = session.photos.filter { session.isMarked($0) || $0.isSentToDarkroom }.count
+        let darkroom = session.photos.filter { session.isMarked($0) || session.isSent($0) }.count
         let edited = session.photos.filter { session.isEdited($0) }.count
         return HStack(spacing: 0) {
             filterButton("Wszystkie", count: all, filter: .all, shortcut: "⌘1", id: "all", session)
@@ -155,7 +155,7 @@ struct MainToolbar: View {
             .buttonStyle(PillButtonStyle())
             .labelStyle(CenteredLabelStyle())
             .disabled(session.darkroomCount == 0)
-            .help("Przenieś oznaczone pliki RAW do Ciemnia/")
+            .help(model.darkroomTarget == .photos ? "Dodaj oznaczone pliki RAW do Zdjęć" : "Przenieś oznaczone pliki RAW do Ciemnia/")
             .accessibilityIdentifier("toolbar.sendToDarkroom")
             Button { model.openSheet(.export) } label: {
                 Label("Eksportuj (\(session.exportCount))", systemImage: "square.and.arrow.up")

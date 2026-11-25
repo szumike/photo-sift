@@ -140,7 +140,7 @@ public struct AlbumExporter: Sendable {
     }
 
     private func status(of item: PhotoItem, state: SidecarState, edit: EditParams?) -> ExportStatus {
-        if item.isSentToDarkroom || state.markedForDarkroom { return .skipped(.darkroom) }
+        if item.isSentToDarkroom || state.markedForDarkroom || state.photosAssetID != nil { return .skipped(.darkroom) }
         guard let jpegURL = item.jpegURL else { return .skipped(.rawOnly) }
 
         let destination = albumURL.appendingPathComponent(jpegURL.lastPathComponent)

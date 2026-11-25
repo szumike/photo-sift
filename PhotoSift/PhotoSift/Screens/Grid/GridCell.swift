@@ -15,20 +15,24 @@ struct GridCell: View {
     @State private var image: CGImage?
 
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                if let image {
-                    Image(decorative: image, scale: 1)
-                        .resizable()
-                        .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
+        VStack(spacing: 0) {
+            // The photo fills the whole top of the card (aspect-fill, centre crop), flush with its top edge,
+            // so no strip of card background shows above or beside it.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 112)
+                .overlay {
+                    if let image {
+                        Image(decorative: image, scale: 1)
+                            .resizable()
+                            .scaledToFill()
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 112)
+                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 10, topTrailingRadius: 10))
             Text(item.id)
                 .font(.system(size: 11.5).monospacedDigit())
                 .foregroundStyle(Color(red: 235 / 255, green: 235 / 255, blue: 245 / 255, opacity: 0.7))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 148)
@@ -70,7 +74,7 @@ struct GridCell: View {
 
     private var title: String {
         var parts = [item.id]
-        if session.isMarked(item) || item.isSentToDarkroom { parts.append("Ciemnia") }
+        if session.isMarked(item) || session.isSent(item) { parts.append("Ciemnia") }
         if session.isEdited(item) { parts.append("edytowane") }
         if let albumStatus { parts.append(albumStatus.label) }
         return parts.joined(separator: " · ")

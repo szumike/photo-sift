@@ -48,6 +48,7 @@
       ],
       "build-settings": {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+        "INFOPLIST_KEY_NSPhotoLibraryUsageDescription": "Photo Sift dodaje pliki RAW zdjęć wysłanych „Do Ciemni” do albumu w aplikacji Zdjęcia.",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
         "DEVELOPMENT_TEAM": "",
