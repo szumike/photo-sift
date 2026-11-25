@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Photo Sift — prototyp</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#111}
+a{color:#4da3ff}a:hover{color:#8cc4ff}
+.ps button{font-family:inherit}
+.tb{height:30px;padding:0 12px;border-radius:15px;border:.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;cursor:default;white-space:nowrap}
+.tb:hover{background:rgba(255,255,255,.14)}
+.tb:disabled{opacity:.38}
+.tb:disabled:hover{background:rgba(255,255,255,.08)}
+.tb.primary{background:#0b67d6;border-color:rgba(255,255,255,.22);color:#fff}
+.tb.primary:hover{background:#1572e2}
+.tb.primary:disabled:hover{background:#0b67d6}
+.tb[aria-pressed=true]{background:rgba(255,255,255,.24)}
+.tb.dk[aria-pressed=true]{background:rgba(255,159,10,.22);border-color:rgba(255,159,10,.6);color:#ffb340}
+.tb.ed[aria-pressed=true]{background:rgba(10,132,255,.24);border-color:rgba(10,132,255,.6);color:#8cc4ff}
+.tb.del:hover{background:rgba(255,69,58,.22);color:#ff9a90}
+.tb.icon{width:30px;padding:0;justify-content:center}
+.tb.sm{height:26px;padding:0 8px;border-radius:8px;font-size:12px}
+.tb.sm.icon{width:28px;padding:0}
+.grp{display:inline-flex;align-items:center;height:30px;border-radius:15px;border:.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);overflow:hidden}
+.grp button{height:30px;border:0;background:transparent;color:rgba(255,255,255,.92);display:inline-flex;align-items:center;justify-content:center;padding:0 10px;cursor:default}
+.grp button:hover{background:rgba(255,255,255,.12)}
+.grp button:disabled{opacity:.38}
+.seg{display:inline-flex;height:30px;padding:2px;border-radius:15px;background:rgba(255,255,255,.08);border:.5px solid rgba(255,255,255,.14);box-sizing:border-box}
+.seg button{border:0;background:transparent;color:rgba(255,255,255,.85);font-size:12.5px;font-weight:500;padding:0 12px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:default}
+.seg button[aria-pressed=true]{background:rgba(255,255,255,.22);color:#fff}
+.seg button:hover{color:#fff}
+.seg button:disabled{opacity:.4}
+.seg .n{color:rgba(235,235,245,.62);font-variant-numeric:tabular-nums}
+.seg.full{display:flex;width:100%;height:34px;border-radius:10px}
+.seg.full button{flex:1 1 0;border-radius:8px}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:5px;background:rgba(255,255,255,.1);border:.5px solid rgba(255,255,255,.2);font-size:11px;font-weight:500;color:rgba(235,235,245,.75);font-variant-numeric:tabular-nums}
+.thumb{outline:none}
+.thumb[aria-pressed=true]{background:#0e2a4d !important;box-shadow:0 0 0 2px rgba(10,132,255,.55)}
+.thumb[data-cur=yes]{box-shadow:0 0 0 2px #0a84ff,0 0 0 5px rgba(10,132,255,.28)}
+.thumb:focus-visible{box-shadow:0 0 0 2px #fff}
+#ps-strip::-webkit-scrollbar{height:8px}
+#ps-strip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:4px}
+.ins::-webkit-scrollbar{width:8px}
+.ins::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:4px}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.02em;color:rgba(235,235,245,.62);margin:18px 0 8px}
+.mi{display:flex;align-items:center;gap:8px;min-width:0;font-size:12.5px}
+.mi svg{flex:0 0 auto;color:rgba(235,235,245,.62)}
+.mi span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.cell{display:flex;align-items:center;gap:7px;padding:9px 10px;border-radius:8px;background:rgba(255,255,255,.05);font-size:12.5px;font-variant-numeric:tabular-nums}
+.cell svg{flex:0 0 auto;color:rgba(235,235,245,.62)}
+.rng{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,.2);outline:none;margin:10px 0 4px}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#ececee;box-shadow:0 1px 3px rgba(0,0,0,.6);border:0}
+.rng::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#ececee;border:0}
+.rng:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(10,132,255,.7)}
+.r-exp{background:linear-gradient(90deg,#111,#cfcfcf 50%,#fff)}
+.r-temp{background:linear-gradient(90deg,#3d7dff,#cfcfcf 50%,#ffae2e)}
+.r-tint{background:linear-gradient(90deg,#2fcf68,#cfcfcf 50%,#e046c8)}
+.sl{display:flex;align-items:center;justify-content:space-between;font-size:12.5px}
+.sl output{font-variant-numeric:tabular-nums;color:rgba(235,235,245,.8)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.st{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.st .k{flex:1 1 auto;color:rgba(235,235,245,.62)}
+.recent{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left;cursor:default}
+.recent:hover{background:rgba(255,255,255,.07)}
+.recent:focus-visible{outline:2px solid #0a84ff}
+</style>
+</helmet>
+<div class="ps" tabIndex="0" onKeyDown="{{ onKeyDown }}" onKeyUp="{{ onKeyUp }}" onFocus="{{ onFocus }}" onBlur="{{ onBlur }}" style="width: 1470px; height: 920px; box-sizing: border-box; position: relative; overflow: hidden; border-radius: 14px; background: #1e1e20; color: rgba(255,255,255,.9); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Helvetica Neue', sans-serif; font-size: 13px; outline: none; display: flex; flex-direction: column; box-shadow: inset 0 0 0 .5px rgba(255,255,255,.14)">
+
+<div style="height: 52px; flex: 0 0 52px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 18px; background: #2a2a2c; border-bottom: 1px solid rgba(0,0,0,.55)">
+  <div aria-hidden="true" style="display: flex; gap: 8px; margin-right: 8px">
+    <span style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57"></span>
+    <span style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e"></span>
+    <span style="width: 12px; height: 12px; border-radius: 50%; background: #28c840"></span>
+  </div>
+  <div style="display: flex; flex-direction: column; line-height: 1.2; min-width: 150px">
+    <span style="font-size: 13px; font-weight: 600">{{ folderName }}</span>
+    <span style="font-size: 11px; color: rgba(235,235,245,.62)">{{ folderSub }}</span>
+  </div>
+  <sc-if value="{{ showToolbarControls }}" hint-placeholder-val="{{ true }}">
+    <div class="grp" role="group" aria-label="Nawigacja">
+      <button aria-label="Poprzednie zdjęcie (←)" title="Poprzednie (←)" onClick="{{ prev }}" disabled="{{ noCur }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"></path></svg></button>
+      <span style="min-width: 64px; text-align: center; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums">{{ posText }}</span>
+      <button aria-label="Następne zdjęcie, zostaw (→)" title="Następne — zostaw (→)" onClick="{{ next }}" disabled="{{ noCur }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"></path></svg></button>
+    </div>
+    <div class="seg" role="group" aria-label="Widok">
+      <button aria-pressed="{{ singleOn }}" aria-label="Pojedyncze zdjęcie (G)" title="Pojedyncze zdjęcie (G)" onClick="{{ showSingle }}" disabled="{{ noPhotos }}" style="padding: 0 10px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"></rect></svg></button>
+      <button aria-pressed="{{ gridOn }}" aria-label="Siatka (G)" title="Siatka (G)" onClick="{{ showGrid }}" disabled="{{ noPhotos }}" style="padding: 0 10px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1"></rect><rect x="9" y="2" width="5" height="5" rx="1"></rect><rect x="2" y="9" width="5" height="5" rx="1"></rect><rect x="9" y="9" width="5" height="5" rx="1"></rect></svg></button>
+    </div>
+    <div class="seg" role="group" aria-label="Filtr">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+        <button aria-pressed="{{ f.pressed }}" onClick="{{ f.click }}" disabled="{{ noPhotos }}" title="{{ f.tip }}">{{ f.label }} <span class="n">{{ f.count }}</span></button>
+      </sc-for>
+    </div>
+  </sc-if>
+  <div style="flex: 1 1 auto"></div>
+  <sc-if value="{{ showToolbarControls }}" hint-placeholder-val="{{ true }}">
+    <button class="tb del" onClick="{{ del }}" disabled="{{ noCur }}" title="{{ delTip }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.8 4.5h10.4M6.3 4.5V2.8h3.4v1.7M4.3 4.5l.7 8.7h6l.7-8.7"></path></svg>
+      Usuń
+    </button>
+    <button class="tb dk" aria-pressed="{{ curDark }}" onClick="{{ toggleDark }}" disabled="{{ noCur }}" title="{{ darkTip }}">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg>
+      Ciemnia
+    </button>
+    <button class="tb ed" aria-pressed="{{ editOn }}" onClick="{{ toggleEdit }}" disabled="{{ noCur }}" title="Edycja (E — światło i kolor, R — kadr, D — powrót)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h6.5M12.5 5h1M2.5 11h1.5M7 11h6.5"></path><circle cx="10.7" cy="5" r="1.6"></circle><circle cx="5.5" cy="11" r="1.6"></circle></svg>
+      Edycja
+    </button>
+    <button class="tb icon" aria-label="Skróty klawiszowe" title="Skróty klawiszowe (?)" onClick="{{ openHelp }}">
+      <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><rect x="1.5" y="4" width="13" height="8.5" rx="1.6"></rect><path d="M4.2 6.8h.01M6.7 6.8h.01M9.2 6.8h.01M11.7 6.8h.01M5 9.8h6"></path></svg>
+    </button>
+    <div style="width: 1px; height: 20px; background: rgba(255,255,255,.12); margin: 0 2px"></div>
+    <button class="tb" onClick="{{ openDark }}" disabled="{{ darkDisabled }}" title="Przenieś oznaczone pliki RAW do Ciemnia/">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ff9f0a" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg>
+      Wyślij do Ciemni ({{ darkCount }})
+    </button>
+    <button class="tb primary" onClick="{{ openExport }}" disabled="{{ exportDisabled }}" title="Zapisz pozostawione zdjęcia w Album/">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2v8M5.2 5 8 2.2 10.8 5"></path><path d="M3.5 8.2v5.3h9V8.2"></path></svg>
+      Eksportuj ({{ exportCount }})
+    </button>
+  </sc-if>
+</div>
+
+<sc-if value="{{ isStart }}">
+  <div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; background: #1e1e20">
+    <div onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="width: 640px; height: 300px; box-sizing: border-box; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; {{ dropS }}">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true"><path d="M6 16a4 4 0 0 1 4-4h14l5 6h25a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="#3d7fd9"></path><path d="M6 24a4 4 0 0 1 4-4h44a4 4 0 0 1 4 4v26a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="#5aa2f5"></path></svg>
+      <div style="font-size: 20px; font-weight: 600">{{ dropTitle }}</div>
+      <div style="font-size: 13px; color: rgba(235,235,245,.66); max-width: 420px; text-align: center; line-height: 1.45">Pliki JPG i ARW o tej samej nazwie pokażę jako jedno zdjęcie.</div>
+      <button class="tb primary" onClick="{{ openDemo }}" style="height: 34px; padding: 0 18px; margin-top: 8px; border-radius: 17px">Otwórz folder… <span class="kbd" style="background: rgba(255,255,255,.18); color: #fff">⌘O</span></button>
+    </div>
+    <div style="width: 640px">
+      <div class="lbl" style="margin: 0 0 6px 12px">Ostatnie foldery</div>
+      <div style="background: #262628; border: .5px solid rgba(255,255,255,.1); border-radius: 14px; padding: 6px">
+        <sc-for list="{{ recents }}" as="r" hint-placeholder-count="4">
+          <button class="recent" onClick="{{ r.click }}">
+            <svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 4.2a1 1 0 0 1 1-1h3.6l1.3 1.5h6.1a1 1 0 0 1 1 1v6.8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z" fill="#4f95ec"></path></svg>
+            <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 13px; font-weight: 600">{{ r.name }}</span>
+              <span style="font-size: 12px; color: rgba(235,235,245,.62)">{{ r.path }} · {{ r.info }}</span>
+            </span>
+            <span style="font-size: 12px; color: rgba(235,235,245,.62)">{{ r.date }}</span>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.5)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 3l5 5-5 5"></path></svg>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isEmpty }}">
+  <div style="flex: 1 1 auto; display: flex; flex-direction: column; background: #2b2b2b">
+    <div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center">
+      <svg width="56" height="56" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.5)" stroke-width=".8" aria-hidden="true"><path d="M1.5 4.2a1 1 0 0 1 1-1h3.6l1.3 1.5h6.1a1 1 0 0 1 1 1v6.8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1z"></path></svg>
+      <div style="font-size: 20px; font-weight: 600">Ten folder nie zawiera zdjęć</div>
+      <div style="font-size: 13px; color: rgba(235,235,245,.66); max-width: 440px; line-height: 1.5">Photo Sift pokazuje tylko pliki JPG i ARW. Inne pliki są pomijane.</div>
+      <button class="tb primary" onClick="{{ backToStart }}" style="margin-top: 10px; height: 34px; padding: 0 18px; border-radius: 17px">Otwórz inny folder… <span class="kbd" style="background: rgba(255,255,255,.18); color: #fff">⌘O</span></button>
+    </div>
+    <div style="height: 72px; flex: 0 0 72px; background: #19191b; border-top: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; color: rgba(235,235,245,.6); font-size: 12px">Brak miniatur</div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isMain }}" hint-placeholder-val="{{ true }}">
+<div style="flex: 1 1 auto; min-height: 0; display: flex">
+  <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px">
+
+    <sc-if value="{{ singleOn }}" hint-placeholder-val="{{ true }}">
+    <div id="ps-area" onMouseMove="{{ areaMove }}" onMouseUp="{{ areaUp }}" onMouseLeave="{{ areaUp }}" style="position: relative; flex: 1 1 auto; min-height: 0; background: #2b2b2b; border-radius: 14px; border: .5px solid rgba(255,255,255,.08); overflow: hidden; display: flex; align-items: center; justify-content: center; user-select: none">
+
+      <sc-if value="{{ showBrowseStage }}" hint-placeholder-val="{{ true }}">
+        <div onMouseDown="{{ mouseZoomStart }}" style="position: relative; flex: 0 0 auto; overflow: hidden; transition: transform .12s ease-out; {{ pv.frameS }}{{ pv.zoomS }}">
+          <div style="position: absolute; {{ pv.innerS }}">
+            <sc-for list="{{ pv.layers }}" as="l" hint-placeholder-count="5"><div style="position: absolute; {{ l.s }}"></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showEditStage }}">
+        <div id="crop-stage" style="position: relative; flex: 0 0 auto; {{ ed.stageS }}">
+          <div style="position: absolute; overflow: hidden; {{ ed.innerS }}">
+            <sc-for list="{{ ed.layers }}" as="l" hint-placeholder-count="5"><div style="position: absolute; {{ l.s }}"></div></sc-for>
+          </div>
+          <sc-if value="{{ ed.showCrop }}">
+            <div onMouseDown="{{ ed.moveStart }}" style="position: absolute; cursor: move; box-shadow: 0 0 0 4000px rgba(22,22,22,.66); outline: 1px solid rgba(255,255,255,.92); {{ ed.boxS }}">
+              <div style="position: absolute; left: 33.333%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.45)"></div>
+              <div style="position: absolute; left: 66.666%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.45)"></div>
+              <div style="position: absolute; top: 33.333%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.45)"></div>
+              <div style="position: absolute; top: 66.666%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.45)"></div>
+              <span aria-hidden="true" onMouseDown="{{ ed.nw }}" style="position: absolute; left: -4px; top: -4px; width: 22px; height: 22px; border-left: 4px solid #fff; border-top: 4px solid #fff; box-sizing: border-box; cursor: nwse-resize"></span>
+              <span aria-hidden="true" onMouseDown="{{ ed.ne }}" style="position: absolute; right: -4px; top: -4px; width: 22px; height: 22px; border-right: 4px solid #fff; border-top: 4px solid #fff; box-sizing: border-box; cursor: nesw-resize"></span>
+              <span aria-hidden="true" onMouseDown="{{ ed.sw }}" style="position: absolute; left: -4px; bottom: -4px; width: 22px; height: 22px; border-left: 4px solid #fff; border-bottom: 4px solid #fff; box-sizing: border-box; cursor: nesw-resize"></span>
+              <span aria-hidden="true" onMouseDown="{{ ed.se }}" style="position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-right: 4px solid #fff; border-bottom: 4px solid #fff; box-sizing: border-box; cursor: nwse-resize"></span>
+              <div style="position: absolute; left: 50%; bottom: -32px; transform: translateX(-50%); white-space: nowrap; padding: 4px 10px; border-radius: 11px; background: rgba(20,20,20,.8); font-size: 11.5px; color: rgba(255,255,255,.88); font-variant-numeric: tabular-nums">{{ ed.sizeText }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ filterEmpty }}">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+          <div style="font-size: 17px; font-weight: 600">{{ filterEmptyTitle }}</div>
+          <button class="tb" onClick="{{ showAll }}" style="margin-top: 8px">Pokaż wszystkie</button>
+        </div>
+      </sc-if>
+
+      <div style="position: absolute; top: 14px; left: 16px; display: flex; gap: 6px; flex-wrap: wrap; max-width: 70%">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="2">
+          <span title="{{ c.tip }}" aria-label="{{ c.tip }}" style="height: 26px; min-width: 26px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 0; border-radius: 13px; background: rgba(24,24,26,.82); border: .5px solid rgba(255,255,255,.12); font-size: 12px; font-weight: 500; color: {{ c.color }}; {{ c.padS }}">
+            <sc-if value="{{ c.iDark }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg></sc-if>
+            <sc-if value="{{ c.iEdit }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h6.5M12.5 5h1M2.5 11h1.5M7 11h6.5"></path><circle cx="10.7" cy="5" r="1.6"></circle><circle cx="5.5" cy="11" r="1.6"></circle></svg></sc-if>
+            <sc-if value="{{ c.iCur }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg></sc-if>
+            <sc-if value="{{ c.iChg }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 4 5M3 9.5A5 5 0 0 0 12 11"></path><path d="M4 2.5V5h2.5M12 13.5V11H9.5"></path></svg></sc-if>
+            <sc-if value="{{ c.iNew }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="2.4 2" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle></svg></sc-if>
+            <sc-if value="{{ c.iRaw }}"><span style="font-size: 9.5px; font-weight: 700; letter-spacing: .04em; padding: 1px 4px; border-radius: 3px; border: 1px solid currentColor">RAW</span></sc-if>
+            <sc-if value="{{ c.iLock }}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg></sc-if>
+            <sc-if value="{{ c.hasText }}"><span style="margin-left: 6px">{{ c.text }}</span></sc-if>
+          </span>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ zoomOn }}">
+        <div style="position: absolute; top: 14px; right: 16px; height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: rgba(24,24,26,.86); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums">100%</div>
+      </sc-if>
+      <sc-if value="{{ beforeOn }}">
+        <div style="position: absolute; top: 14px; right: 16px; height: 26px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 13px; background: rgba(240,240,240,.92); color: #111; font-size: 12px; font-weight: 600">Przed</div>
+      </sc-if>
+
+      <sc-if value="{{ toastOn }}">
+        <div role="status" style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); max-width: 560px; padding: 10px 16px; border-radius: 14px; background: rgba(36,36,38,.95); border: .5px solid rgba(255,255,255,.16); box-shadow: 0 10px 30px rgba(0,0,0,.45); display: flex; flex-direction: column; gap: 2px; text-align: center">
+          <span style="font-size: 13px; font-weight: 600">{{ toastText }}</span>
+          <sc-if value="{{ toastSubOn }}"><span style="font-size: 12px; color: rgba(235,235,245,.68)">{{ toastSub }}</span></sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ doneOn }}">
+        <div style="position: absolute; inset: 0; background: rgba(28,28,30,.86); backdrop-filter: blur(14px); display: flex; align-items: center; justify-content: center">
+          <div style="width: 520px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+            <svg width="54" height="54" viewBox="0 0 16 16" fill="none" stroke="#30d158" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.6"></circle><path d="M5.2 8.3 7.1 10.2l3.7-4"></path></svg>
+            <div style="font-size: 22px; font-weight: 600">Wszystkie zdjęcia przejrzane</div>
+            <div style="font-size: 13px; color: rgba(235,235,245,.68)">{{ doneSub }}</div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; margin: 14px 0 8px">
+              <div style="background: rgba(255,255,255,.06); border-radius: 12px; padding: 14px 10px"><div style="font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums">{{ doneDeleted }}</div><div style="font-size: 12px; color: rgba(235,235,245,.68)">usunięte do Kosza</div></div>
+              <div style="background: rgba(255,159,10,.1); border-radius: 12px; padding: 14px 10px"><div style="font-size: 24px; font-weight: 600; color: #ffb340; font-variant-numeric: tabular-nums">{{ darkCount }}</div><div style="font-size: 12px; color: rgba(235,235,245,.68)">do wysłania do Ciemni</div></div>
+              <div style="background: rgba(10,132,255,.12); border-radius: 12px; padding: 14px 10px"><div style="font-size: 24px; font-weight: 600; color: #79b8ff; font-variant-numeric: tabular-nums">{{ exportCount }}</div><div style="font-size: 12px; color: rgba(235,235,245,.68)">do eksportu do Album/</div></div>
+            </div>
+            <div style="display: flex; gap: 10px">
+              <button class="tb" onClick="{{ restart }}">Wróć do pierwszego</button>
+              <button class="tb" onClick="{{ openDark }}" disabled="{{ darkDisabled }}">Wyślij do Ciemni ({{ darkCount }})</button>
+              <button class="tb primary" onClick="{{ openExport }}" disabled="{{ exportDisabled }}">Eksportuj ({{ exportCount }})</button>
+            </div>
+            <div style="font-size: 12px; color: rgba(235,235,245,.6); margin-top: 6px"><span class="kbd">←</span> wraca do ostatniego zdjęcia</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div id="ps-strip" style="position: relative; height: 72px; flex: 0 0 72px; display: flex; gap: 5px; align-items: center; padding: 0 10px; overflow-x: auto; overflow-y: hidden; background: #262628; border-radius: 14px; border: .5px solid rgba(255,255,255,.1)">
+      <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="12">
+        <button id="thumb-{{ t.id }}" class="thumb" title="{{ t.title }}" aria-label="{{ t.title }}" aria-pressed="{{ t.isSel }}" data-cur="{{ t.curAttr }}" onClick="{{ t.click }}" style="position: relative; flex: 0 0 auto; width: 70px; height: 54px; padding: 0; border: 0; border-radius: 6px; background: #101011; display: flex; align-items: center; justify-content: center; cursor: default">
+          <div style="position: relative; overflow: hidden; border-radius: 2px; {{ t.imgS }}">
+            <sc-for list="{{ t.layers }}" as="l" hint-placeholder-count="5"><div style="position: absolute; {{ l.s }}"></div></sc-for>
+          </div>
+          <div style="position: absolute; top: 3px; left: 3px; display: flex; gap: 2px">
+            <sc-if value="{{ t.dark }}"><span style="width: 14px; height: 14px; border-radius: 7px; background: rgba(20,20,20,.82); display: flex; align-items: center; justify-content: center; color: #ff9f0a"><svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg></span></sc-if>
+            <sc-if value="{{ t.edited }}"><span style="width: 14px; height: 14px; border-radius: 7px; background: rgba(20,20,20,.82); display: flex; align-items: center; justify-content: center; color: #79b8ff"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h6.5M12.5 5h1M2.5 11h1.5M7 11h6.5"></path><circle cx="10.7" cy="5" r="1.6"></circle><circle cx="5.5" cy="11" r="1.6"></circle></svg></span></sc-if>
+            <sc-if value="{{ t.raw }}"><span style="height: 14px; padding: 0 3px; border-radius: 7px; background: rgba(20,20,20,.82); display: flex; align-items: center; font-size: 7.5px; font-weight: 700; letter-spacing: .04em; color: #e5e5ea">RAW</span></sc-if>
+          </div>
+          <sc-if value="{{ t.multi }}"><span style="position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 7px; background: #0a84ff; display: flex; align-items: center; justify-content: center"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg></span></sc-if>
+          <span style="position: absolute; bottom: 3px; right: 3px; width: 14px; height: 14px; border-radius: 7px; background: rgba(20,20,20,.82); display: flex; align-items: center; justify-content: center">
+            <sc-if value="{{ t.eCur }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#30d158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg></sc-if>
+            <sc-if value="{{ t.eChg }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#ffd60a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 4 5M3 9.5A5 5 0 0 0 12 11"></path><path d="M4 2.5V5h2.5M12 13.5V11H9.5"></path></svg></sc-if>
+            <sc-if value="{{ t.eNew }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.75)" stroke-width="1.8" stroke-dasharray="2.4 2" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle></svg></sc-if>
+            <sc-if value="{{ t.eSkip }}"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.6)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 8h7"></path></svg></sc-if>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ gridOn }}">
+    <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #262628; border-radius: 14px; border: .5px solid rgba(255,255,255,.1); overflow: hidden">
+      <div style="height: 40px; flex: 0 0 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: .5px solid rgba(255,255,255,.08)">
+        <span style="font-size: 12.5px; color: rgba(235,235,245,.62)">{{ gridInfo }}</span>
+        <sc-if value="{{ multiOn }}">
+          <span style="height: 24px; display: inline-flex; align-items: center; gap: 4px; padding: 0 3px 0 10px; border-radius: 12px; background: rgba(10,132,255,.22); color: #8cc4ff; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums">
+            {{ selCountText }}
+            <button aria-label="Odznacz (esc)" title="Odznacz (esc)" onClick="{{ clearSel }}" style="width: 18px; height: 18px; padding: 0; border: 0; border-radius: 9px; background: rgba(140,196,255,.22); color: #8cc4ff; display: inline-flex; align-items: center; justify-content: center; cursor: default"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+          </span>
+        </sc-if>
+      </div>
+      <div id="ps-grid" style="position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-content: start">
+        <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="18">
+          <button id="grid-{{ t.id }}" class="thumb" title="{{ t.title }}" aria-label="{{ t.title }}" aria-pressed="{{ t.isSel }}" data-cur="{{ t.curAttr }}" onClick="{{ t.click }}" onDoubleClick="{{ t.open }}" style="position: relative; height: 148px; padding: 0; border: 0; border-radius: 10px; background: #1b1b1d; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: default; color: inherit">
+            <div style="height: 112px; display: flex; align-items: center; justify-content: center">
+              <div style="position: relative; overflow: hidden; border-radius: 3px; {{ t.gimgS }}">
+                <sc-for list="{{ t.layers }}" as="l" hint-placeholder-count="5"><div style="position: absolute; {{ l.s }}"></div></sc-for>
+              </div>
+            </div>
+            <span style="font-size: 11.5px; color: rgba(235,235,245,.7); font-variant-numeric: tabular-nums">{{ t.file }}</span>
+            <div style="position: absolute; top: 6px; left: 6px; display: flex; gap: 3px">
+              <sc-if value="{{ t.dark }}"><span style="width: 20px; height: 20px; border-radius: 10px; background: rgba(20,20,20,.85); display: flex; align-items: center; justify-content: center; color: #ff9f0a"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg></span></sc-if>
+              <sc-if value="{{ t.edited }}"><span style="width: 20px; height: 20px; border-radius: 10px; background: rgba(20,20,20,.85); display: flex; align-items: center; justify-content: center; color: #79b8ff"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h6.5M12.5 5h1M2.5 11h1.5M7 11h6.5"></path><circle cx="10.7" cy="5" r="1.6"></circle><circle cx="5.5" cy="11" r="1.6"></circle></svg></span></sc-if>
+              <sc-if value="{{ t.raw }}"><span style="height: 20px; padding: 0 6px; border-radius: 10px; background: rgba(20,20,20,.85); display: flex; align-items: center; font-size: 9px; font-weight: 700; letter-spacing: .04em; color: #e5e5ea">RAW</span></sc-if>
+            </div>
+            <sc-if value="{{ t.multi }}"><span style="position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 10px; background: #0a84ff; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg></span></sc-if>
+            <span style="position: absolute; bottom: 6px; right: 6px; width: 20px; height: 20px; border-radius: 10px; background: rgba(20,20,20,.85); display: flex; align-items: center; justify-content: center">
+              <sc-if value="{{ t.eCur }}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#30d158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg></sc-if>
+              <sc-if value="{{ t.eChg }}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#ffd60a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 4 5M3 9.5A5 5 0 0 0 12 11"></path><path d="M4 2.5V5h2.5M12 13.5V11H9.5"></path></svg></sc-if>
+              <sc-if value="{{ t.eNew }}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.75)" stroke-width="1.8" stroke-dasharray="2.4 2" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle></svg></sc-if>
+              <sc-if value="{{ t.eSkip }}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.6)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 8h7"></path></svg></sc-if>
+            </span>
+          </button>
+        </sc-for>
+        <sc-if value="{{ filterEmpty }}"><div style="grid-column: 1 / -1; padding: 40px 0; text-align: center; color: rgba(235,235,245,.66)">{{ filterEmptyTitle }}</div></sc-if>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+
+  <div class="ins" style="width: 300px; flex: 0 0 300px; box-sizing: border-box; padding: 8px 8px 0 0; overflow-y: auto; display: flex; flex-direction: column">
+
+    <sc-if value="{{ noCur }}">
+      <div style="box-sizing: border-box; border-radius: 14px; background: #262628; border: .5px solid rgba(255,255,255,.1); margin-bottom: 8px; padding: 14px 14px 16px; color: rgba(235,235,245,.62); font-size: 13px; padding-top: 6px">Brak wybranego zdjęcia.</div>
+    </sc-if>
+
+    <sc-if value="{{ hasCur }}" hint-placeholder-val="{{ true }}">
+      <div style="box-sizing: border-box; border-radius: 14px; background: #262628; border: .5px solid rgba(255,255,255,.1); margin-bottom: 8px; padding: 14px 14px 16px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+        <div style="font-size: 16px; font-weight: 600">{{ cur.file }}</div>
+        <div style="font-size: 11.5px; color: rgba(235,235,245,.62)">{{ cur.typeText }}</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px">
+        <div class="mi" title="Aparat"><svg role="img" aria-label="Aparat" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M1.8 5.2h2.7l1.2-1.7h4.6l1.2 1.7h2.7v7.5H1.8z"></path><circle cx="8" cy="8.8" r="2.4"></circle></svg><span>Sony ILCE-7M3</span></div>
+        <div class="mi" title="Obiektyw"><svg role="img" aria-label="Obiektyw" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"></circle><circle cx="8" cy="8" r="3"></circle><circle cx="8" cy="8" r=".6" fill="currentColor"></circle></svg><span>{{ cur.lens }}</span></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <div class="cell" title="Czułość ISO"><svg role="img" aria-label="ISO" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="2.5" width="11" height="11" rx="2"></rect><rect x="5.5" y="5.5" width="5" height="5" rx=".8"></rect></svg>{{ cur.iso }}</div>
+          <div class="cell" title="Przysłona"><svg role="img" aria-label="Przysłona" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><circle cx="8" cy="8" r="6"></circle><path d="M8 2l2.2 5.2M14 8l-5.2 2.2M8 14l-2.2-5.2M2 8l5.2-2.2M12.2 3.8 9.4 8.6M12.2 12.2 7.4 9.4M3.8 12.2 6.6 7.4M3.8 3.8l4.8 2.8"></path></svg>{{ cur.f }}</div>
+          <div class="cell" title="Czas naświetlania"><svg role="img" aria-label="Czas naświetlania" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="9" r="5.2"></circle><path d="M8 9V6.4M6.4 1.8h3.2M12.3 4.6l1-1"></path></svg>{{ cur.t }}</div>
+          <div class="cell" title="Ogniskowa"><svg role="img" aria-label="Ogniskowa" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M4.8 5.2 2 8l2.8 2.8M11.2 5.2 14 8l-2.8 2.8"></path></svg>{{ cur.fl }}</div>
+        </div>
+        <div class="mi" title="Data wykonania"><svg role="img" aria-label="Data" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2.3" y="3.3" width="11.4" height="10.4" rx="1.6"></rect><path d="M2.3 6.6h11.4M5.4 1.8v3M10.6 1.8v3"></path></svg><span>{{ cur.time }}</span></div>
+      </div>
+
+      </div>
+
+      <sc-if value="{{ insBrowse }}" hint-placeholder-val="{{ true }}">
+      <div style="box-sizing: border-box; border-radius: 14px; background: #262628; border: .5px solid rgba(255,255,255,.1); margin-bottom: 8px; padding: 14px 14px 16px">
+        <div class="lbl" style="margin-top: 0">Stan</div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <div class="st"><svg width="15" height="15" viewBox="0 0 16 16" fill="{{ cur.darkIconFill }}" stroke="{{ cur.darkColor }}" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg><span class="k">Ciemnia</span><span style="color: {{ cur.darkColor }}">{{ cur.darkText }}</span></div>
+          <div class="st"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="{{ cur.editColor }}" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h6.5M12.5 5h1M2.5 11h1.5M7 11h6.5"></path><circle cx="10.7" cy="5" r="1.6"></circle><circle cx="5.5" cy="11" r="1.6"></circle></svg><span class="k">Edycja</span><span>{{ cur.editText }}</span></div>
+          <div class="st"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="{{ cur.expColor }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h4l1.2 1.5H13v6.5H3z"></path></svg><span class="k">Album/</span><span style="color: {{ cur.expColor }}">{{ cur.expText }}</span></div>
+        </div>
+        <sc-if value="{{ cur.rawOnly }}">
+          <div style="margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.06); font-size: 12px; line-height: 1.45; color: rgba(235,235,245,.8)">Brak JPEG-a. Podgląd z miniatury w ARW. Edycja i eksport niedostępne.</div>
+        </sc-if>
+        <sc-if value="{{ multiBox }}">
+          <div style="margin-top: 14px; padding: 12px; border-radius: 12px; background: rgba(10,132,255,.12); border: .5px solid rgba(10,132,255,.4); display: flex; flex-direction: column; gap: 8px">
+            <div style="font-size: 13px; font-weight: 600">{{ multiTitle }}</div>
+            <div style="display: flex; gap: 6px">
+              <button class="tb sm" onClick="{{ pasteWB }}" disabled="{{ pasteDisabled }}" title="⇧⌘V">Wklej balans bieli</button>
+              <button class="tb sm" onClick="{{ clearSel }}" title="esc">Odznacz</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ insEdit }}">
+      <div style="box-sizing: border-box; border-radius: 14px; background: #262628; border: .5px solid rgba(255,255,255,.1); margin-bottom: 8px; padding: 14px 14px 16px; flex: 1 1 auto; display: flex; flex-direction: column">
+        <div class="seg full" role="tablist" aria-label="Narzędzie edycji">
+          <button role="tab" aria-pressed="{{ toolColor }}" aria-selected="{{ toolColor }}" onClick="{{ pickColor }}">Światło i kolor <span class="kbd">E</span></button>
+          <button role="tab" aria-pressed="{{ toolCrop }}" aria-selected="{{ toolCrop }}" onClick="{{ pickCrop }}">Kadr <span class="kbd">R</span></button>
+        </div>
+
+        <sc-if value="{{ toolColor }}">
+
+          <div class="row" style="margin: 16px 0 4px">
+            <span style="font-size: 11px; font-weight: 600; letter-spacing: .02em; color: rgba(235,235,245,.62)">Balans bieli</span>
+            <span style="display: inline-flex; gap: 4px">
+              <button class="tb sm icon" aria-label="Kopiuj balans bieli (⇧⌘C)" title="Kopiuj balans bieli (⇧⌘C)" onClick="{{ copyWB }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5"></rect><path d="M3 10.5V3.5A1 1 0 0 1 4 2.5h6.5"></path></svg></button>
+              <button class="tb sm" aria-label="{{ pasteLabel }}" title="{{ pasteLabel }}" onClick="{{ pasteWB }}" disabled="{{ pasteDisabled }}" style="gap: 4px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3.5" y="3" width="9" height="11" rx="1.5"></rect><path d="M6 3V1.8h4V3"></path></svg><sc-if value="{{ multiOn }}"><span style="font-variant-numeric: tabular-nums">{{ selCount }}</span></sc-if></button>
+            </span>
+          </div>
+          <div class="sl"><label for="ps-temp">Temperatura</label><output for="ps-temp">{{ tempText }}</output></div>
+          <input id="ps-temp" class="rng r-temp" type="range" min="-100" max="100" step="1" value="{{ tempVal }}" onChange="{{ onTemp }}" onDoubleClick="{{ zeroTemp }}">
+          <div class="sl" style="margin-top: 10px"><label for="ps-tint">Tint</label><output for="ps-tint">{{ tintText }}</output></div>
+          <input id="ps-tint" class="rng r-tint" type="range" min="-100" max="100" step="1" value="{{ tintVal }}" onChange="{{ onTint }}" onDoubleClick="{{ zeroTint }}">
+        </sc-if>
+
+        <sc-if value="{{ toolCrop }}">
+          <div class="lbl">Orientacja</div>
+          <div class="row">
+            <div class="seg" role="group" aria-label="Orientacja kadru" style="flex: 1 1 auto">
+              <button aria-pressed="{{ orientH }}" onClick="{{ setH }}" style="flex: 1 1 0" title="Poziom 3:2"><svg width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1" y="1" width="16" height="10" rx="1.5"></rect></svg>3:2</button>
+              <button aria-pressed="{{ orientV }}" onClick="{{ setV }}" style="flex: 1 1 0" title="Pion 2:3"><svg width="12" height="16" viewBox="0 0 12 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1" y="1" width="10" height="14" rx="1.5"></rect></svg>2:3</button>
+            </div>
+          </div>
+          <div class="lbl">Prostowanie</div>
+          <div class="sl"><label for="ps-angle">Kąt</label><output for="ps-angle">{{ angleText }}</output></div>
+          <input id="ps-angle" class="rng" type="range" min="-45" max="45" step="0.1" value="{{ angleVal }}" onChange="{{ onAngle }}" onDoubleClick="{{ zeroAngle }}">
+        </sc-if>
+
+        <div style="flex: 1 1 auto; min-height: 18px"></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+          <button class="tb sm" onMouseDown="{{ beforeDown }}" onMouseUp="{{ beforeUp }}" onMouseLeave="{{ beforeUp }}" title="Przytrzymaj">Przed / po <span style="flex: 1"></span><span class="kbd">M</span></button>
+          <button class="tb sm" onClick="{{ resetEdit }}" disabled="{{ resetDisabled }}" title="Resetuj edycję (⇧⌘R)">Resetuj <span style="flex: 1"></span><span class="kbd">⇧⌘R</span></button>
+        </div>
+        <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: rgba(235,235,245,.62)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#30d158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg>Zapisano</div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ insLocked }}">
+        <div style="margin-bottom: 8px; padding: 14px; border-radius: 14px; background: rgba(255,159,10,.1); border: .5px solid rgba(255,159,10,.45); display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #ffb340">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>
+            {{ lockTitle }}
+          </div>
+          <div style="font-size: 12.5px; line-height: 1.45; color: rgba(235,235,245,.85)">{{ lockText }}</div>
+          <sc-if value="{{ lockCanUnmark }}">
+            <button class="tb sm" onClick="{{ toggleDark }}" style="margin-top: 4px; align-self: flex-start">Usuń oznaczenie Ciemni <span class="kbd">C</span></button>
+          </sc-if>
+        </div>
+      </sc-if>
+    </sc-if>
+
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ sheetOn }}">
+  <div style="position: absolute; left: 0; right: 0; top: 52px; bottom: 0; background: rgba(0,0,0,.38); display: flex; justify-content: center; align-items: flex-start; padding-top: 70px">
+    <div role="dialog" aria-modal="true" style="width: 500px; box-sizing: border-box; border-radius: 22px; background: #2c2c2e; border: .5px solid rgba(255,255,255,.16); box-shadow: 0 24px 70px rgba(0,0,0,.6); padding: 26px 24px 20px">
+
+      <sc-if value="{{ sheetDark }}">
+        <div style="display: flex; gap: 14px">
+          <div style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 11px; background: rgba(255,159,10,.16); display: flex; align-items: center; justify-content: center"><svg width="24" height="24" viewBox="0 0 16 16" fill="#ff9f0a" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg></div>
+          <div style="flex: 1 1 auto">
+            <div style="font-size: 15px; font-weight: 600">Wyślij do Ciemni</div>
+            <div style="font-size: 13px; line-height: 1.5; margin-top: 6px">{{ darkSheetText }} Pliki JPEG zostają na miejscu.</div>
+          </div>
+        </div>
+        <div style="margin: 16px 0 0 58px; max-height: 168px; overflow-y: auto; border-radius: 10px; background: rgba(0,0,0,.22); padding: 6px 10px">
+          <sc-for list="{{ darkFiles }}" as="d" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; font-variant-numeric: tabular-nums; border-bottom: .5px solid rgba(255,255,255,.06)"><span>{{ d.file }}.ARW <span style="color: rgba(235,235,245,.6)">+ .xmp</span></span><span style="color: rgba(235,235,245,.6)">→ Ciemnia/</span></div>
+          </sc-for>
+        </div>
+        <div style="margin: 12px 0 0 58px; font-size: 12px; line-height: 1.5; color: rgba(235,235,245,.66)">Te zdjęcia nie trafią do eksportu z Photo Sift — gotowe pliki wyeksportujesz do Album/ z Lightrooma.</div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px">
+          <button class="tb" onClick="{{ closeSheet }}" style="min-width: 90px; justify-content: center">Anuluj</button>
+          <button class="tb primary" onClick="{{ confirmDark }}" style="min-width: 110px; justify-content: center">Przenieś RAW-y</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sheetExport }}">
+        <div style="display: flex; gap: 14px">
+          <div style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 11px; background: rgba(10,132,255,.18); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="#4da3ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2v8M5.2 5 8 2.2 10.8 5"></path><path d="M3.5 8.2v5.3h9V8.2"></path></svg></div>
+          <div style="flex: 1 1 auto">
+            <div style="font-size: 15px; font-weight: 600">{{ exportTitle }}</div>
+
+            <sc-if value="{{ exportConfirm }}">
+              <div style="font-size: 13px; margin-top: 6px">{{ exportSummary }}</div>
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px">
+                <div style="background: rgba(255,255,255,.06); border-radius: 10px; padding: 10px 12px"><div style="font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums">{{ expNew }}</div><div style="font-size: 12px; color: rgba(235,235,245,.66)">nowych</div></div>
+                <div style="background: rgba(255,255,255,.06); border-radius: 10px; padding: 10px 12px"><div style="font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums">{{ expUpd }}</div><div style="font-size: 12px; color: rgba(235,235,245,.66)">do aktualizacji</div></div>
+              </div>
+              <div style="font-size: 12px; line-height: 1.55; color: rgba(235,235,245,.7); margin-top: 12px">Pominięte: {{ expSkipText }}.</div>
+              <div style="display: flex; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.05); border: .5px solid rgba(255,255,255,.1); font-size: 12px; line-height: 1.5; color: rgba(235,235,245,.82)">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" style="flex: 0 0 16px; margin-top: 1px" aria-hidden="true"><circle cx="8" cy="8" r="6.3"></circle><path d="M8 7.2v4M8 4.8v.1" stroke-linecap="round"></path></svg>
+                <span>Eksport niczego z Album/ nie usuwa. Kopie zdjęć usuniętych lub wysłanych do Ciemni po wcześniejszym eksporcie usuń ręcznie w Finderze.</span>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ exportRunning }}">
+              <div style="font-size: 13px; margin-top: 6px; font-variant-numeric: tabular-nums">{{ progText }}</div>
+              <div style="height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); margin-top: 14px; overflow: hidden"><div style="height: 100%; border-radius: 3px; background: #0a84ff; transition: width .25s; width: {{ progPct }}%"></div></div>
+              <div style="font-size: 12px; color: rgba(235,235,245,.66); margin-top: 8px; font-variant-numeric: tabular-nums">{{ progFile }}</div>
+            </sc-if>
+
+            <sc-if value="{{ exportFinished }}">
+              <div style="font-size: 13px; margin-top: 6px; line-height: 1.5">{{ doneText }}</div>
+              <div style="height: 6px; border-radius: 3px; background: #30d158; margin-top: 14px"></div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px">
+          <sc-if value="{{ exportConfirm }}">
+            <button class="tb" onClick="{{ closeSheet }}" style="min-width: 90px; justify-content: center">Anuluj</button>
+            <button class="tb primary" onClick="{{ confirmExport }}" style="min-width: 110px; justify-content: center">Eksportuj</button>
+          </sc-if>
+          <sc-if value="{{ exportRunning }}">
+            <button class="tb" onClick="{{ stopExport }}" style="min-width: 90px; justify-content: center">Zatrzymaj</button>
+          </sc-if>
+          <sc-if value="{{ exportFinished }}">
+            <button class="tb" onClick="{{ showInFinder }}">Pokaż w Finderze</button>
+            <button class="tb primary" onClick="{{ closeSheet }}" style="min-width: 90px; justify-content: center">Gotowe</button>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ helpOn }}">
+  <div onClick="{{ closeHelp }}" style="position: absolute; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center">
+    <div role="dialog" aria-label="Skróty klawiszowe" style="width: 880px; box-sizing: border-box; border-radius: 24px; background: rgba(40,40,42,.97); border: .5px solid rgba(255,255,255,.16); box-shadow: 0 30px 80px rgba(0,0,0,.6); padding: 26px 30px 24px">
+      <div class="row" style="margin-bottom: 6px">
+        <div style="font-size: 17px; font-weight: 600">Skróty klawiszowe</div>
+        <div style="font-size: 12px; color: rgba(235,235,245,.62)"><span class="kbd">?</span> lub <span class="kbd">esc</span> zamyka</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 28px; row-gap: 4px">
+        <sc-for list="{{ helpGroups }}" as="g" hint-placeholder-count="6">
+          <div>
+            <div class="lbl" style="margin-top: 16px">{{ g.title }}</div>
+            <sc-for list="{{ g.items }}" as="h" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 12.5px; border-bottom: .5px solid rgba(255,255,255,.06)">
+                <span>{{ h.label }}</span>
+                <span style="display: inline-flex; gap: 3px; flex: 0 0 auto"><sc-for list="{{ h.keys }}" as="k" hint-placeholder-count="1"><span class="kbd">{{ k }}</span></sc-for></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div class="lbl" style="margin-top: 20px">Oznaczenia na miniaturach</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px">
+        <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="#ff9f0a" aria-hidden="true"><path d="M13.2 9.6A5.6 5.6 0 0 1 6.4 2.8a5.6 5.6 0 1 0 6.8 6.8z"></path></svg>Ciemnia</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#79b8ff" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2.5 5h6.5M12.5 5h1M2.5 11h1.5M7 11h6.5"></path><circle cx="10.7" cy="5" r="1.6"></circle><circle cx="5.5" cy="11" r="1.6"></circle></svg>Edytowane</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#30d158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 5"></path></svg>W Albumie, aktualne</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#ffd60a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 4 5M3 9.5A5 5 0 0 0 12 11"></path><path d="M4 2.5V5h2.5M12 13.5V11H9.5"></path></svg>Zmienione od eksportu</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.8)" stroke-width="1.8" stroke-dasharray="2.4 2" aria-hidden="true"><circle cx="8" cy="8" r="5.5"></circle></svg>Nie wyeksportowane</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(235,235,245,.7)" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 8h7"></path></svg>Pomijane w eksporcie</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px"><span style="font-size: 9px; font-weight: 700; letter-spacing: .04em; padding: 1px 4px; border-radius: 3px; border: 1px solid currentColor">RAW</span>Tylko plik RAW</span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"initial":{"editor":"enum","options":["start","browse","grid","zoom","edit","editColor","editLocked","multi","sheetDark","sheetExport","exporting","rawOnly","empty","done","shortcuts"],"default":"start","section":"Prototyp"},"$preview":{"width":1470,"height":920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const p = props || this.props || {};
+    this.mx = 50; this.my = 40; this.drag = null; this.timer = null; this.toastT = null; this.frame = null; this.mouseZoom = false;
+    this.state = this.makeState(p.initial || 'start');
+  }
+  componentDidMount() {
+    this.afterRender();
+    if (this.state.sheet === 'export' && this.state.exportPhase === 'running' && !this.state.freeze) this.runExport();
+  }
+  componentDidUpdate(prev) {
+    if (prev && prev.initial !== this.props.initial) { this.stopTimers(); this.setState(this.makeState(this.props.initial || 'start')); return; }
+    this.afterRender();
+  }
+  componentWillUnmount() { this.stopTimers(); }
+  stopTimers() { if (this.timer) clearInterval(this.timer); this.timer = null; if (this.toastT) clearTimeout(this.toastT); this.toastT = null; }
+  afterRender() {
+    const id = this.state.curId;
+    const key = this.state.view + ':' + id;
+    if (!id || key === this.lastScrolled) return;
+    this.lastScrolled = key;
+    if (this.state.view === 'grid') {
+      const g = document.getElementById('ps-grid'); const el = document.getElementById('grid-' + id);
+      if (g && el && (el.offsetTop < g.scrollTop || el.offsetTop + el.offsetHeight > g.scrollTop + g.clientHeight)) g.scrollTop = Math.max(0, el.offsetTop - g.clientHeight / 2 + el.offsetHeight / 2);
+      return;
+    }
+    const strip = document.getElementById('ps-strip');
+    const th = document.getElementById('thumb-' + id);
+    if (strip && th) {
+      const target = th.offsetLeft - strip.clientWidth / 2 + th.offsetWidth / 2;
+      try { strip.scrollTo({ left: Math.max(0, target), behavior: 'smooth' }); } catch (e) { strip.scrollLeft = Math.max(0, target); }
+    }
+  }
+
+  rng(seed) { let s = Math.abs(Math.floor(seed * 9301 + 49297)) % 233280; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+  ridge(seed, base, amp, n, shift) {
+    const r = this.rng(seed); const pts = ['-5% 100%'];
+    for (let k = -1; k <= n + 1; k++) { const x = k / n * 100 + shift; const y = base - r() * amp; pts.push(x.toFixed(1) + '% ' + y.toFixed(1) + '%'); }
+    pts.push('105% 100%');
+    return 'polygon(' + pts.join(', ') + ')';
+  }
+  sceneLayers(kind, g, v) {
+    const sh = (v - 2.5) * 1.4; const L = [];
+    if (kind === 'peaks') {
+      L.push('inset:0;background:linear-gradient(180deg,#6e9fd3 0%,#b9d1e8 52%,#e6edf2 68%)');
+      L.push('left:' + (64 + sh) + '%;top:' + (12 + v) + '%;width:16%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,252,236,.95) 0%,rgba(255,244,210,.45) 30%,rgba(255,244,210,0) 70%)');
+      L.push('inset:0;background:linear-gradient(180deg,#f4f7fa 0%,#a9b6ca 34%,#6f7f99 70%);clip-path:' + this.ridge(g * 7 + 1, 46, 30, 7, sh));
+      L.push('inset:0;background:linear-gradient(180deg,#4f6b58,#2b3e33);clip-path:' + this.ridge(g * 7 + 3, 74, 16, 9, sh * 1.8));
+      L.push('left:0;right:0;bottom:0;height:15%;background:linear-gradient(180deg,#617f48,#3c5530)');
+    } else if (kind === 'lake') {
+      L.push('inset:0;background:linear-gradient(180deg,#90abd2 0%,#e9c49f 56%,#f5dcc2 62%)');
+      L.push('left:' + (30 + sh * 2) + '%;top:46%;width:14%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,240,206,1) 0%,rgba(255,206,150,.55) 30%,rgba(255,206,150,0) 70%)');
+      L.push('inset:0;background:linear-gradient(180deg,#77739a,#4d4b6c);clip-path:' + this.ridge(g * 5 + 2, 60, 22, 6, sh));
+      L.push('left:0;right:0;bottom:0;height:39%;background:linear-gradient(180deg,#e0bf9f 0%,#9bb0cf 35%,#4d6486 100%)');
+      L.push('left:0;right:0;bottom:0;height:39%;background:repeating-linear-gradient(180deg,rgba(255,255,255,0) 0 7px,rgba(255,255,255,.08) 7px 8px)');
+      L.push('inset:0;background:#1f2a2a;clip-path:polygon(-5% 100%,-5% 52%,4% 40%,8% 55%,13% 44%,18% 62%,24% 70%,30% 82%,36% 100%)');
+    } else if (kind === 'forest') {
+      L.push('inset:0;background:linear-gradient(180deg,#c9d4cd 0%,#eef0ea 60%)');
+      L.push('inset:0;background:#a3b0a5;clip-path:' + this.ridge(g * 3 + 5, 60, 12, 26, sh));
+      L.push('inset:0;background:#73887a;clip-path:' + this.ridge(g * 3 + 8, 72, 12, 22, sh * 1.5));
+      L.push('inset:0;background:linear-gradient(180deg,rgba(238,240,234,0) 45%,rgba(238,240,234,.55) 70%,rgba(238,240,234,0) 85%)');
+      L.push('inset:0;background:#2e4636;clip-path:' + this.ridge(g * 3 + 11, 88, 14, 18, sh * 2.2));
+    } else if (kind === 'sunset') {
+      L.push('inset:0;background:linear-gradient(180deg,#3b386c 0%,#a85678 42%,#ff955a 66%,#ffcf8a 76%)');
+      L.push('left:' + (44 + sh) + '%;top:54%;width:22%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff3cc 0%,#ffb75e 30%,rgba(255,140,80,0) 70%)');
+      L.push('inset:0;background:#58406a;clip-path:' + this.ridge(g * 9 + 4, 72, 14, 7, sh));
+      L.push('inset:0;background:#251c30;clip-path:' + this.ridge(g * 9 + 6, 86, 10, 9, sh * 1.6));
+    } else {
+      const P = [
+        { bg: '#6f8d5a,#3b5236', bo: 'rgba(255,230,170,.55)', hair: '#3a2a1f', skin: '#f0c4a3,#d29b79', top: '#c95b4b,#963c31' },
+        { bg: '#8a7a6a,#4b3d34', bo: 'rgba(255,214,150,.6)', hair: '#7a4a2a', skin: '#e8b996,#c78c68', top: '#3f6ea5,#2b4d78' },
+        { bg: '#5f7790,#2f3f52', bo: 'rgba(220,235,255,.5)', hair: '#1f1a17', skin: '#d9a07c,#b37d5b', top: '#e0b04a,#b08530' },
+        { bg: '#7d8c6c,#45503a', bo: 'rgba(255,240,200,.5)', hair: '#b07a45', skin: '#f3cfb4,#d8a989', top: '#5c7d5a,#3d5a3c' }
+      ][g % 4];
+      const o = (v % 3 - 1) * 3;
+      L.push('inset:0;background:radial-gradient(circle at ' + (18 + v * 3) + '% 22%,' + P.bo + ' 0 6%,rgba(0,0,0,0) 7%),radial-gradient(circle at ' + (80 - v * 2) + '% 16%,' + P.bo + ' 0 4%,rgba(0,0,0,0) 5%),radial-gradient(circle at 76% 56%,' + P.bo + ' 0 6%,rgba(0,0,0,0) 7%),radial-gradient(circle at 12% 64%,' + P.bo + ' 0 3%,rgba(0,0,0,0) 4%),linear-gradient(180deg,' + P.bg + ')');
+      L.push('left:' + (29 + o) + '%;top:13%;width:42%;height:40%;border-radius:48% 48% 38% 38%;background:' + P.hair);
+      L.push('left:' + (11 + o) + '%;top:62%;width:78%;height:50%;border-radius:46% 46% 0 0;background:linear-gradient(180deg,' + P.top + ')');
+      L.push('left:' + (44 + o) + '%;top:43%;width:12%;height:21%;border-radius:0 0 40% 40%;background:#c98f6d');
+      L.push('left:' + (35 + o) + '%;top:19%;width:30%;height:29%;border-radius:50%;background:radial-gradient(circle at 42% 36%,' + P.skin + ')');
+      L.push('left:' + (33 + o) + '%;top:15%;width:34%;height:11%;border-radius:50% 50% 22% 22%;background:' + P.hair);
+    }
+    return L;
+  }
+  buildPhotos() {
+    const SC = ['peaks', 'portrait', 'lake', 'forest', 'portrait', 'sunset', 'peaks', 'lake', 'portrait', 'forest'];
+    const M = {
+      peaks: { lens: 'FE 16-35mm F4 ZA OSS', fl: [16, 20, 24, 28], f: ['f/8', 'f/11'], iso: [100], t: ['1/320 s', '1/500 s'] },
+      lake: { lens: 'FE 24-70mm F2.8 GM', fl: [24, 35], f: ['f/4', 'f/5.6'], iso: [400, 200], t: ['1/250 s', '1/320 s'] },
+      forest: { lens: 'FE 24-70mm F2.8 GM', fl: [35, 50, 70], f: ['f/4', 'f/5.6'], iso: [400, 640], t: ['1/250 s', '1/160 s'] },
+      sunset: { lens: 'FE 24-70mm F2.8 GM', fl: [24, 50, 70], f: ['f/5.6', 'f/8'], iso: [200], t: ['1/125 s', '1/250 s'] },
+      portrait: { lens: 'FE 85mm F1.8', fl: [85], f: ['f/1.8', 'f/2', 'f/2.8'], iso: [100, 200, 400], t: ['1/500 s', '1/1000 s', '1/800 s'] }
+    };
+    const pick = (arr, r) => arr[Math.floor(r() * arr.length) % arr.length];
+    const out = [];
+    for (let i = 0; i < 60; i++) {
+      const g = Math.floor(i / 6), v = i % 6, kind = SC[g % SC.length];
+      const A = kind === 'portrait' ? 2 / 3 : 1.5;
+      const r = this.rng(i * 13 + 7); const m = M[kind];
+      const mins = 7 * 60 + 5 + i * 3 + Math.floor(r() * 2);
+      const time = '16.11.2026, ' + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+      const meta = { lens: m.lens, fl: pick(m.fl, r) + ' mm', f: pick(m.f, r), iso: 'ISO ' + pick(m.iso, r), t: pick(m.t, r), time };
+      if (i === 46) { meta.lens = 'FE 24-70mm F2.8 GM'; meta.iso = 'ISO 400'; meta.f = 'f/4'; meta.t = '1/250 s'; meta.fl = '35 mm'; }
+      out.push({ id: 'p' + i, file: 'DSC0' + (1180 + i), kind, A, layers: this.sceneLayers(kind, g, v), meta, dark: false, sent: false, rawOnly: false, edit: this.defEdit(A), expSig: null });
+    }
+    const E = (i, patch) => { out[i].edit = Object.assign({}, out[i].edit, patch); };
+    E(3, { temp: 10, angle: -1.2 }); E(11, { tint: 8 }); E(24, { cx: .06, cy: .05, cw: .88, ch: .88 });
+    E(7, { temp: -14 }); E(19, { angle: 2.1, temp: 6 }); E(48, { temp: 12 });
+    [5, 13, 28, 36, 49].forEach(i => { out[i].dark = true; });
+    out[53].rawOnly = true;
+    for (let i = 0; i < 46; i++) if (!out[i].dark) out[i].expSig = this.sig(out[i].edit);
+    out[7].expSig = 'stary'; out[19].expSig = 'stary';
+    return out;
+  }
+  defEdit(A) { return { cx: 0, cy: 0, cw: 1, ch: 1, orient: A > 1 ? 'h' : 'v', angle: 0, exp: 0, temp: 0, tint: 0 }; }
+  sig(e) { return [e.cx, e.cy, e.cw, e.ch].map(x => Math.round(x * 1000)).join(',') + '|' + Number(e.angle).toFixed(1) + '|' + Number(e.exp || 0).toFixed(2) + '|' + e.temp + '|' + e.tint; }
+  isEdited(p) { const e = p.edit; return Math.abs(e.angle) > 0.05 || Math.abs(e.exp || 0) > 0.001 || e.temp !== 0 || e.tint !== 0 || e.cw < 0.999 || e.ch < 0.999; }
+  exp(p) { if (p.dark || p.rawOnly) return 'skip'; if (!p.expSig) return 'new'; return p.expSig === this.sig(p.edit) ? 'current' : 'changed'; }
+  locked(p) { return !!(p && (p.dark || p.rawOnly)); }
+  exportables(photos) { return photos.filter(p => { const s = this.exp(p); return s === 'new' || s === 'changed'; }); }
+  filterList(photos, f) { if (f === 'dark') return photos.filter(p => p.dark); if (f === 'edited') return photos.filter(p => this.isEdited(p)); return photos; }
+  filtered() { return this.filterList(this.state.photos, this.state.filter); }
+  cur() { const s = this.state; return s.photos.find(p => p.id === s.curId) || null; }
+  pl(n, a, b, c) { if (n === 1) return a; const d = n % 10, h = n % 100; if (d >= 2 && d <= 4 && !(h >= 12 && h <= 14)) return b; return c; }
+  num(x, dec) { const s = Math.abs(x).toFixed(dec).replace('.', ','); const z = Number(Math.abs(x).toFixed(dec)) === 0; return (z ? '' : x > 0 ? '+' : '−') + s; }
+
+  makeState(initial) {
+    const photos = this.buildPhotos();
+    const id = i => photos[i].id;
+    const base = { screen: 'browse', folder: '2026-11-16 Tatry', photos, curId: id(46), sel: [id(46)], anchor: id(46), filter: 'all', view: 'single', mode: 'browse', tool: 'color', zoom: false, zx: 50, zy: 40, before: false, sheet: null, exportPhase: 'confirm', exportDone: 0, exportList: [], freeze: false, toast: null, clipboard: null, done: false, help: false, dragOver: false, focused: false, deleted: 0, exported: 0 };
+    switch (initial) {
+      case 'browse': return base;
+      case 'zoom': return Object.assign(base, { curId: id(50), sel: [id(50)], zoom: true, zx: 50, zy: 30 });
+      case 'edit': photos[46].edit = Object.assign({}, photos[46].edit, { cx: .07, cy: .06, cw: .86, ch: .86, angle: 1.8, temp: 14, tint: -4 }); return Object.assign(base, { mode: 'edit', tool: 'crop' });
+      case 'editColor': photos[46].edit = Object.assign({}, photos[46].edit, { cx: .07, cy: .06, cw: .86, ch: .86, angle: 1.8, temp: 14, tint: -4 }); return Object.assign(base, { mode: 'edit', tool: 'color' });
+      case 'editLocked': return Object.assign(base, { curId: id(49), sel: [id(49)], mode: 'edit' });
+      case 'multi': { const ids = [42, 43, 44, 45, 46, 47].map(id); photos[46].edit = Object.assign({}, photos[46].edit, { temp: 18, tint: -6 }); return Object.assign(base, { mode: 'edit', tool: 'color', sel: ids, anchor: ids[0], clipboard: { temp: 18, tint: -6, from: photos[46].file } }); }
+      case 'sheetDark': return Object.assign(base, { sheet: 'dark' });
+      case 'sheetExport': return Object.assign(base, { sheet: 'export' });
+      case 'exporting': return Object.assign(base, { sheet: 'export', exportPhase: 'running', exportList: this.exportables(photos).map(p => p.id), exportDone: 6, freeze: true });
+      case 'rawOnly': return Object.assign(base, { curId: id(53), sel: [id(53)] });
+      case 'empty': return Object.assign(base, { screen: 'empty', folder: 'Karta SD — import 03.09', photos: [], curId: null, sel: [] });
+      case 'done': return Object.assign(base, { curId: id(59), sel: [id(59)], done: true, deleted: 7 });
+      case 'shortcuts': return Object.assign(base, { help: true });
+      case 'grid': { const ids = [42, 43, 44, 45].map(id); return Object.assign(base, { view: 'grid', curId: id(45), sel: ids, anchor: ids[0] }); }
+    }
+    return Object.assign(base, { screen: 'start' });
+  }
+
+  toast(text, sub) {
+    if (this.toastT) clearTimeout(this.toastT);
+    this.setState({ toast: { text, sub: sub || '' } });
+    this.toastT = setTimeout(() => { this.toastT = null; this.setState({ toast: null }); }, 3000);
+  }
+  openFolder(name) {
+    this.stopTimers();
+    if (name === 'sd') { this.setState(this.makeState('empty')); return; }
+    const st = this.makeState('browse'); st.focused = this.state.focused;
+    this.setState(st);
+    this.toast('Wznowiono od zdjęcia 47 z 60', '');
+  }
+  go(delta) {
+    const s = this.state; if (s.sheet || s.help) return;
+    const list = this.filtered(); if (!list.length) return;
+    if (s.done) { if (delta < 0) this.setState({ done: false }); return; }
+    const i = list.findIndex(p => p.id === s.curId);
+    if (i < 0) { const nid = list[0].id; this.setState({ curId: nid, sel: [nid], anchor: nid }); return; }
+    const ni = i + delta;
+    if (ni >= list.length) { this.setState({ done: true, zoom: false, before: false }); return; }
+    if (ni < 0) return;
+    const nid = list[ni].id;
+    this.setState({ curId: nid, sel: [nid], anchor: nid, zoom: false });
+  }
+  del() {
+    const s = this.state; const p = this.cur(); if (!p || s.done) return;
+    const list = this.filtered(); const i = list.findIndex(x => x.id === p.id);
+    const photos = s.photos.filter(x => x.id !== p.id);
+    const nl = this.filterList(photos, s.filter);
+    let curId = null, done = false;
+    if (nl.length) { if (i >= 0 && i < nl.length) curId = nl[i].id; else { curId = nl[nl.length - 1].id; done = true; } }
+    const patch = { photos, curId, sel: curId ? [curId] : [], anchor: curId, done, deleted: s.deleted + 1, zoom: false };
+    if (!photos.length) patch.screen = 'empty';
+    this.setState(patch);
+    this.toast(p.file + ' w Koszu', (p.rawOnly ? 'ARW i XMP' : 'JPEG, ARW i XMP') + ' · przywrócisz w Finderze');
+  }
+  toggleDark() {
+    const s = this.state; const p = this.cur(); if (!p || s.done) return;
+    if (p.sent) { this.toast('RAW jest już w Ciemnia/', 'Cofniesz to, przenosząc ' + p.file + '.ARW w Finderze.'); return; }
+    const dark = !p.dark;
+    const photos = s.photos.map(x => x.id === p.id ? Object.assign({}, x, { dark }) : x);
+    const nl = this.filterList(photos, s.filter);
+    const patch = { photos };
+    if (dark && s.mode === 'browse') {
+      const i = nl.findIndex(x => x.id === p.id);
+      if (i + 1 < nl.length) { const nid = nl[i + 1].id; Object.assign(patch, { curId: nid, sel: [nid], anchor: nid }); } else patch.done = true;
+    } else if (!dark && s.filter === 'dark') {
+      const i = this.filterList(s.photos, 'dark').findIndex(x => x.id === p.id);
+      if (nl.length) { const nid = nl[Math.min(i, nl.length - 1)].id; Object.assign(patch, { curId: nid, sel: [nid], anchor: nid }); }
+    }
+    this.setState(patch);
+    this.toast(dark ? p.file + ' → Ciemnia' : p.file + ': bez Ciemni', '');
+  }
+  setFilter(f) {
+    const s = this.state; const list = this.filterList(s.photos, f);
+    const patch = { filter: f, done: false };
+    if (!list.find(p => p.id === s.curId)) { const nid = list.length ? list[0].id : s.curId; Object.assign(patch, { curId: nid, sel: nid ? [nid] : [], anchor: nid }); }
+    this.setState(patch);
+  }
+  clickThumb(id, e) {
+    const s = this.state;
+    if (e && (e.metaKey || e.ctrlKey)) {
+      let sel = s.sel.includes(id) ? s.sel.filter(x => x !== id) : s.sel.concat(id);
+      if (!sel.length) sel = [id];
+      this.setState({ sel, curId: id, anchor: id, done: false });
+    } else if (e && e.shiftKey) {
+      const list = this.filtered();
+      const a = list.findIndex(x => x.id === (s.anchor || s.curId)); const b = list.findIndex(x => x.id === id);
+      const lo = Math.min(a, b), hi = Math.max(a, b);
+      this.setState({ sel: list.slice(Math.max(0, lo), hi + 1).map(x => x.id), curId: id, done: false });
+    } else this.setState({ curId: id, sel: [id], anchor: id, done: false });
+  }
+  setEdit(patch, id) {
+    const s = this.state; const pid = id || s.curId;
+    const photos = s.photos.map(x => x.id === pid ? Object.assign({}, x, { edit: Object.assign({}, x.edit, patch) }) : x);
+    this.setState({ photos });
+  }
+  toggleView() {
+    const s = this.state; if (!s.photos.length) return;
+    if (s.view === 'grid') this.setState({ view: 'single', done: false });
+    else this.setState({ view: 'grid', mode: 'browse', zoom: false, before: false, done: false });
+  }
+  openSingle(id) { this.setState({ view: 'single', curId: id, sel: [id], anchor: id, done: false, mode: 'browse' }); }
+  selIds() { const s = this.state; return s.sel.length > 1 ? s.sel.slice() : (s.curId ? [s.curId] : []); }
+  gridMove(delta) {
+    const s = this.state; const list = this.filtered(); if (!list.length) return;
+    let i = list.findIndex(x => x.id === s.curId); if (i < 0) i = 0; else i = Math.max(0, Math.min(list.length - 1, i + delta));
+    const nid = list[i].id; this.setState({ curId: nid, sel: [nid], anchor: nid });
+  }
+  delSel() {
+    const s = this.state; const ids = this.selIds(); if (!ids.length) return;
+    const list = this.filtered(); const first = list.findIndex(x => ids.includes(x.id));
+    const gone = s.photos.filter(x => ids.includes(x.id));
+    const photos = s.photos.filter(x => !ids.includes(x.id)); const nl = this.filterList(photos, s.filter);
+    const curId = nl.length ? nl[Math.max(0, Math.min(first, nl.length - 1))].id : null;
+    const patch = { photos, curId, sel: curId ? [curId] : [], anchor: curId, done: false, deleted: s.deleted + ids.length };
+    if (!photos.length) patch.screen = 'empty';
+    this.setState(patch);
+    this.toast(ids.length === 1 ? gone[0].file + ' w Koszu' : ids.length + ' ' + this.pl(ids.length, 'zdjęcie', 'zdjęcia', 'zdjęć') + ' w Koszu', 'JPEG, ARW i XMP · przywrócisz w Finderze');
+  }
+  darkSel() {
+    const s = this.state; const ids = this.selIds(); if (!ids.length) return;
+    const targets = s.photos.filter(x => ids.includes(x.id) && !x.sent);
+    if (!targets.length) { this.toast('RAW jest już w Ciemnia/', ''); return; }
+    const dark = targets.some(x => !x.dark);
+    const tids = targets.map(x => x.id);
+    const photos = s.photos.map(x => tids.includes(x.id) ? Object.assign({}, x, { dark }) : x);
+    const nl = this.filterList(photos, s.filter); const patch = { photos };
+    if (ids.length === 1 && dark) { const i = nl.findIndex(x => x.id === ids[0]); if (i + 1 < nl.length) { const nid = nl[i + 1].id; Object.assign(patch, { curId: nid, sel: [nid], anchor: nid }); } }
+    else if (!nl.find(x => x.id === s.curId) && nl.length) { const nid = nl[0].id; Object.assign(patch, { curId: nid, sel: [nid], anchor: nid }); }
+    this.setState(patch);
+    const n = tids.length;
+    this.toast((n === 1 ? targets[0].file : n + ' ' + this.pl(n, 'zdjęcie', 'zdjęcia', 'zdjęć')) + (dark ? ' → Ciemnia' : ': bez Ciemni'), '');
+  }
+  gridKey(e, c, meta, stop) {
+    const s = this.state;
+    if (c === 'ArrowRight') { stop(); this.gridMove(1); }
+    else if (c === 'ArrowLeft') { stop(); this.gridMove(-1); }
+    else if (c === 'ArrowDown') { stop(); this.gridMove(6); }
+    else if (c === 'ArrowUp') { stop(); this.gridMove(-6); }
+    else if (c === 'Enter') { stop(); if (s.curId) this.openSingle(s.curId); }
+    else if (c === 'Backspace' || c === 'Delete') { stop(); this.delSel(); }
+    else if (meta && e.shiftKey && c === 'KeyC') { stop(); this.copyWB(); }
+    else if (meta && e.shiftKey && c === 'KeyV') { stop(); this.pasteWB(); }
+    else if (meta && c === 'KeyA') { stop(); this.selectAll(); }
+    else if (meta && c === 'Digit1') { stop(); this.setFilter('all'); }
+    else if (meta && c === 'Digit2') { stop(); this.setFilter('dark'); }
+    else if (meta && c === 'Digit3') { stop(); this.setFilter('edited'); }
+    else if (meta) return;
+    else if (c === 'KeyC') { stop(); this.darkSel(); }
+    else if (c === 'KeyG') { stop(); this.toggleView(); }
+    else if (c === 'KeyE' || c === 'KeyR') { stop(); if (s.curId) this.setState({ view: 'single', mode: 'edit', tool: c === 'KeyE' ? 'color' : 'crop', sel: [s.curId] }); }
+    else if (c === 'Escape') { stop(); this.setState({ sel: s.curId ? [s.curId] : [] }); }
+  }
+  toggleEdit() {
+    const s = this.state; if (!this.cur()) return;
+    if (s.view === 'grid') { this.setState({ view: 'single', mode: 'edit', sel: [s.curId] }); return; }
+    this.setState({ mode: s.mode === 'edit' ? 'browse' : 'edit', zoom: false, done: false });
+  }
+  openTool(tool) {
+    const s = this.state; if (!this.cur()) return;
+    if (s.mode === 'edit' && s.tool === tool) { this.setState({ mode: 'browse' }); return; }
+    this.setState({ mode: 'edit', tool, zoom: false, done: false });
+  }
+  setOrient(orient) {
+    const p = this.cur(); if (!p || this.locked(p)) return;
+    const e = p.edit; if (e.orient === orient) return;
+    const A = p.A; const R = orient === 'h' ? 1.5 : 2 / 3;
+    const ccx = e.cx + e.cw / 2, ccy = e.cy + e.ch / 2;
+    const ch = Math.min(1, A / R); const cw = R * ch / A;
+    const cl = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+    this.setEdit({ orient, cw, ch, cx: cl(ccx - cw / 2, 0, 1 - cw), cy: cl(ccy - ch / 2, 0, 1 - ch) });
+  }
+  toggleOrient() {
+    const p = this.cur(); if (!p || this.locked(p)) return;
+    if (this.state.mode !== 'edit' || this.state.tool !== 'crop') this.setState({ mode: 'edit', tool: 'crop', zoom: false });
+    this.setOrient(p.edit.orient === 'h' ? 'v' : 'h');
+  }
+  copyWB() {
+    const p = this.cur(); if (!p) return;
+    if (this.locked(p)) { this.toast('Tego zdjęcia nie edytujesz w Photo Sift', ''); return; }
+    this.setState({ clipboard: { temp: p.edit.temp, tint: p.edit.tint, from: p.file } });
+    this.toast('Skopiowano balans bieli', 'Temp. ' + this.num(p.edit.temp, 0) + ' · Tint ' + this.num(p.edit.tint, 0));
+  }
+  pasteWB() {
+    const s = this.state; const c = s.clipboard; if (!c) return;
+    const targets = s.sel.length > 1 ? s.sel : [s.curId];
+    let ok = 0, skip = 0;
+    const photos = s.photos.map(x => {
+      if (!targets.includes(x.id)) return x;
+      if (this.locked(x)) { skip++; return x; }
+      ok++; return Object.assign({}, x, { edit: Object.assign({}, x.edit, { temp: c.temp, tint: c.tint }) });
+    });
+    this.setState({ photos });
+    this.toast('Wklejono balans bieli: ' + ok + ' ' + this.pl(ok, 'zdjęcie', 'zdjęcia', 'zdjęć'), skip ? 'Pominięto ' + skip + ' (Ciemnia lub tylko RAW)' : '');
+  }
+  resetEdit() {
+    const p = this.cur(); if (!p || this.locked(p)) return;
+    this.setEdit(this.defEdit(p.A));
+    this.toast('Edycja zresetowana', '');
+  }
+  selectAll() { const l = this.filtered(); if (l.length) this.setState({ sel: l.map(x => x.id) }); }
+  openSheet(k) {
+    const s = this.state;
+    if (k === 'dark' && !this.darkPending().length) return;
+    if (k === 'export' && !this.exportables(s.photos).length) return;
+    this.setState({ sheet: k, exportPhase: 'confirm', exportDone: 0, help: false, zoom: false });
+  }
+  darkPending() { return this.state.photos.filter(p => p.dark && !p.sent); }
+  closeSheet() { if (this.timer) { clearInterval(this.timer); this.timer = null; } this.setState({ sheet: null, exportPhase: 'confirm', freeze: false }); }
+  confirmDark() {
+    const n = this.darkPending().length;
+    const photos = this.state.photos.map(p => p.dark && !p.sent ? Object.assign({}, p, { sent: true }) : p);
+    this.setState({ photos, sheet: null });
+    this.toast('Przeniesiono ' + n + ' ' + this.pl(n, 'plik RAW', 'pliki RAW', 'plików RAW') + ' do Ciemnia/', 'JPEG-i zostały na miejscu.');
+  }
+  confirmExport() {
+    const list = this.exportables(this.state.photos).map(p => p.id);
+    this.setState({ exportPhase: 'running', exportList: list, exportDone: 0, freeze: false });
+    this.runExport();
+  }
+  runExport() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      const s = this.state; const d = s.exportDone + 1;
+      if (d >= s.exportList.length) {
+        clearInterval(this.timer); this.timer = null;
+        const set = s.exportList;
+        const photos = s.photos.map(p => set.includes(p.id) ? Object.assign({}, p, { expSig: this.sig(p.edit) }) : p);
+        this.setState({ photos, exportDone: set.length, exportPhase: 'done', exported: set.length });
+      } else this.setState({ exportDone: d });
+    }, 230);
+  }
+  stopExport() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    const s = this.state; const set = s.exportList.slice(0, s.exportDone);
+    const photos = s.photos.map(p => set.includes(p.id) ? Object.assign({}, p, { expSig: this.sig(p.edit) }) : p);
+    this.setState({ photos, sheet: null, exportPhase: 'confirm', freeze: false });
+    this.toast('Eksport zatrzymany', 'Zapisano ' + set.length + ' z ' + s.exportList.length + '.');
+  }
+
+  canZoom() { const s = this.state; return s.mode === 'browse' || s.tool === 'color' || this.locked(this.cur()); }
+  areaMove(e) {
+    if (this.drag) { this.cropDrag(e); return; }
+    const el = e.currentTarget; const f = this.frame; if (!el || !f) return;
+    const rc = el.getBoundingClientRect(); const k = rc.width / el.offsetWidth || 1;
+    const x = (e.clientX - rc.left) / k, y = (e.clientY - rc.top) / k;
+    this.mx = Math.max(0, Math.min(100, (x - (el.offsetWidth - f.w) / 2) / f.w * 100));
+    this.my = Math.max(0, Math.min(100, (y - (el.offsetHeight - f.h) / 2) / f.h * 100));
+    if (this.state.zoom) this.setState({ zx: this.mx, zy: this.my });
+  }
+  areaUp() {
+    if (this.drag) { this.drag = null; return; }
+    if (this.mouseZoom) { this.mouseZoom = false; this.setState({ zoom: false }); }
+  }
+  cropDrag(e) {
+    const d = this.drag; const p = this.cur(); if (!p) return;
+    const c = d.c; const A = p.A; const R = c.orient === 'h' ? 1.5 : 2 / 3;
+    const nx = (e.clientX - d.rc.left) / d.rc.width, ny = (e.clientY - d.rc.top) / d.rc.height;
+    const cl = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+    if (d.mode === 'move') {
+      const dx = (e.clientX - d.sx) / d.rc.width, dy = (e.clientY - d.sy) / d.rc.height;
+      this.setEdit({ cx: cl(c.cx + dx, 0, 1 - c.cw), cy: cl(c.cy + dy, 0, 1 - c.ch) });
+      return;
+    }
+    const west = d.mode.indexOf('w') >= 0, north = d.mode.indexOf('n') >= 0;
+    const ax = west ? c.cx + c.cw : c.cx, ay = north ? c.cy + c.ch : c.cy;
+    const dirX = west ? -1 : 1, dirY = north ? -1 : 1;
+    let cw = Math.max(dirX * (nx - ax), dirY * (ny - ay) * R / A);
+    const maxW = Math.min(west ? ax : 1 - ax, (north ? ay : 1 - ay) * R / A);
+    cw = cl(cw, 0.15, maxW); const ch = cw * A / R;
+    this.setEdit({ cw, ch, cx: west ? ax - cw : ax, cy: north ? ay - ch : ay });
+  }
+  startDrag(mode, e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const st = document.getElementById('crop-stage'); const p = this.cur(); if (!st || !p) return;
+    this.drag = { mode, rc: st.getBoundingClientRect(), sx: e.clientX, sy: e.clientY, c: Object.assign({}, p.edit) };
+  }
+
+  onKeyDown(e) {
+    const s = this.state; const c = e.code; const meta = e.metaKey || e.ctrlKey;
+    const inRange = e.target && e.target.type === 'range';
+    const stop = () => { e.preventDefault(); e.stopPropagation(); };
+    if (s.help) { if (c === 'Escape' || c === 'Slash') { stop(); this.setState({ help: false }); } return; }
+    if (s.sheet) {
+      if (c === 'Escape' && s.exportPhase !== 'running') { stop(); this.closeSheet(); }
+      else if (c === 'Enter') { stop(); if (s.sheet === 'dark') this.confirmDark(); else if (s.exportPhase === 'confirm') this.confirmExport(); else if (s.exportPhase === 'done') this.closeSheet(); }
+      return;
+    }
+    if (meta && c === 'KeyO') { stop(); this.setState({ screen: 'start', sheet: null }); return; }
+    if (s.screen === 'start') return;
+    if (c === 'Slash' && e.shiftKey) { stop(); this.setState({ help: true }); return; }
+    if (s.screen !== 'browse') return;
+    if (e.repeat && (c === 'KeyZ' || c === 'KeyM')) { stop(); return; }
+    if (s.view === 'grid') { this.gridKey(e, c, meta, stop); return; }
+    if (c === 'ArrowRight' && !inRange) { stop(); this.go(1); }
+    else if (c === 'ArrowLeft' && !inRange) { stop(); this.go(-1); }
+    else if (c === 'Backspace' || c === 'Delete') { stop(); this.del(); }
+    else if (meta && e.shiftKey && c === 'KeyC') { stop(); this.copyWB(); }
+    else if (meta && e.shiftKey && c === 'KeyV') { stop(); this.pasteWB(); }
+    else if (meta && e.shiftKey && c === 'KeyR') { stop(); this.resetEdit(); }
+    else if (meta && c === 'KeyA') { stop(); this.selectAll(); }
+    else if (meta && c === 'Digit1') { stop(); this.setFilter('all'); }
+    else if (meta && c === 'Digit2') { stop(); this.setFilter('dark'); }
+    else if (meta && c === 'Digit3') { stop(); this.setFilter('edited'); }
+    else if (meta) return;
+    else if (c === 'KeyC') { stop(); this.toggleDark(); }
+    else if (c === 'KeyE') { stop(); this.openTool('color'); }
+    else if (c === 'KeyR') { stop(); this.openTool('crop'); }
+    else if (c === 'KeyD') { stop(); if (s.mode === 'edit') this.setState({ mode: 'browse' }); }
+    else if (c === 'KeyG') { stop(); this.toggleView(); }
+    else if (c === 'KeyZ') { stop(); if (this.canZoom() && this.cur() && !s.done) this.setState({ zoom: true, zx: this.mx, zy: this.my }); }
+    else if (c === 'KeyM') { stop(); if (this.cur()) this.setState({ before: true }); }
+    else if (c === 'Escape') { stop(); if (s.done) this.setState({ done: false }); else if (s.mode === 'edit') this.setState({ mode: 'browse' }); else this.setState({ sel: s.curId ? [s.curId] : [] }); }
+  }
+  onKeyUp(e) {
+    if (e.code === 'KeyZ' && this.state.zoom) this.setState({ zoom: false });
+    if (e.code === 'KeyM' && this.state.before) this.setState({ before: false });
+  }
+
+  fx(ed) {
+    const L = [];
+    if (ed.temp) L.push('inset:0;background:' + (ed.temp > 0 ? '#ff8a1a' : '#2f7bff') + ';mix-blend-mode:soft-light;opacity:' + (Math.abs(ed.temp) / 100 * .95).toFixed(2));
+    if (ed.tint) L.push('inset:0;background:' + (ed.tint > 0 ? '#ff2fd0' : '#22e060') + ';mix-blend-mode:soft-light;opacity:' + (Math.abs(ed.tint) / 100 * .8).toFixed(2));
+    return L;
+  }
+  bright(ed) { const v = ed.exp || 0; return v ? 'filter:brightness(' + Math.pow(2, v * .55).toFixed(3) + ');' : ''; }
+  previewVals(p, s) {
+    const MAXW = 1100, MAXH = 720;
+    const e = s.before ? this.defEdit(p.A) : p.edit;
+    const A = p.A;
+    const layers = p.layers.concat(this.fx(e)).map(x => ({ s: x }));
+    const R = (e.cw * A) / e.ch;
+    let FW, FH; if (R >= MAXW / MAXH) { FW = MAXW; FH = MAXW / R; } else { FH = MAXH; FW = MAXH * R; }
+    this.frame = { w: FW, h: FH };
+    const iw = FW / e.cw, ih = FH / e.ch;
+    const t = Math.abs(e.angle) * Math.PI / 180; const sc = Math.cos(t) + Math.sin(t) * Math.max(R, 1 / R);
+    const ox = (e.cx + e.cw / 2) * iw, oy = (e.cy + e.ch / 2) * ih;
+    const filt = p.rawOnly ? 'filter:blur(.8px) saturate(.92);' : this.bright(e);
+    const pv = {
+      frameS: 'width:' + FW.toFixed(1) + 'px;height:' + FH.toFixed(1) + 'px;',
+      zoomS: s.zoom ? 'transform:scale(4);transform-origin:' + s.zx.toFixed(1) + '% ' + s.zy.toFixed(1) + '%;cursor:zoom-out;' : 'cursor:zoom-in;',
+      innerS: 'left:' + (-e.cx * iw).toFixed(1) + 'px;top:' + (-e.cy * ih).toFixed(1) + 'px;width:' + iw.toFixed(1) + 'px;height:' + ih.toFixed(1) + 'px;transform-origin:' + ox.toFixed(1) + 'px ' + oy.toFixed(1) + 'px;transform:rotate(' + e.angle + 'deg) scale(' + sc.toFixed(4) + ');' + filt,
+      layers
+    };
+    const IW = A > 1 ? 960 : 427, IH = 640;
+    const pe = p.edit;
+    const eox = (pe.cx + pe.cw / 2) * IW, eoy = (pe.cy + pe.ch / 2) * IH;
+    const showOrig = s.before;
+    const pxW = Math.round(pe.cw * (A > 1 ? 6000 : 4000)), pxH = Math.round(pe.ch * (A > 1 ? 4000 : 6000));
+    const ed = {
+      stageS: 'width:' + IW + 'px;height:' + IH + 'px;',
+      innerS: 'left:0;top:0;width:' + IW + 'px;height:' + IH + 'px;' + (showOrig ? '' : 'transform-origin:' + eox.toFixed(1) + 'px ' + eoy.toFixed(1) + 'px;transform:rotate(' + pe.angle + 'deg);' + this.bright(pe)),
+      layers: p.layers.concat(showOrig ? [] : this.fx(pe)).map(x => ({ s: x })),
+      showCrop: !showOrig,
+      boxS: 'left:' + (pe.cx * IW).toFixed(1) + 'px;top:' + (pe.cy * IH).toFixed(1) + 'px;width:' + (pe.cw * IW).toFixed(1) + 'px;height:' + (pe.ch * IH).toFixed(1) + 'px;',
+      sizeText: (pe.orient === 'h' ? '3:2' : '2:3') + ' · ' + pxW + ' × ' + pxH,
+      moveStart: (ev) => this.startDrag('move', ev),
+      nw: (ev) => this.startDrag('nw', ev), ne: (ev) => this.startDrag('ne', ev), sw: (ev) => this.startDrag('sw', ev), se: (ev) => this.startDrag('se', ev)
+    };
+    return { pv, ed };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const p = this.cur();
+    const list = this.filtered();
+    const isMain = s.screen === 'browse';
+    const hasCur = !!p && isMain;
+    const locked = this.locked(p);
+    const darkPending = s.photos.filter(x => x.dark && !x.sent);
+    const expList = this.exportables(s.photos);
+    const expNew = expList.filter(x => this.exp(x) === 'new').length, expUpd = expList.length - expNew;
+    const idx = p ? list.findIndex(x => x.id === p.id) : -1;
+    const nDark = s.photos.filter(x => x.dark).length, nEd = s.photos.filter(x => this.isEdited(x)).length;
+    const filters = [['all', 'Wszystkie', s.photos.length, '⌘1'], ['dark', 'Ciemnia', nDark, '⌘2'], ['edited', 'Edytowane', nEd, '⌘3']].map(f => ({ label: f[1], count: f[2], tip: f[1] + ' (' + f[3] + ')', pressed: s.filter === f[0], click: () => this.setFilter(f[0]) }));
+    const editing = s.mode === 'edit';
+    const grid = s.view === 'grid';
+    const cropTool = editing && s.tool === 'crop' && !locked;
+
+    const blank = { pv: { frameS: 'width:1050px;height:700px;', zoomS: '', innerS: '', layers: [] }, ed: { stageS: '', innerS: '', layers: [], showCrop: false, boxS: '', sizeText: '' } };
+    const view = p ? this.previewVals(p, s) : blank;
+
+    const multi = s.sel.length > 1;
+    const chips = [];
+    const T = 'padding:0 10px;', I = 'padding:0;width:26px;';
+    const chipText = (c) => Object.assign(c, { hasText: !!c.text });
+    if (p && isMain) {
+      if (p.rawOnly) chips.push({ text: 'Tylko RAW', tip: 'Tylko RAW · podgląd z miniatury w ARW', color: '#e5e5ea', iRaw: true, padS: T });
+      if (p.dark) chips.push({ text: p.sent ? 'Ciemnia · RAW przeniesiony' : 'Ciemnia', tip: 'Ciemnia', color: '#ffb340', iDark: true, padS: T });
+      if (editing && locked) chips.push({ text: 'Edycja zablokowana', tip: 'Edycja zablokowana', color: '#ffb340', iLock: true, padS: T });
+      if (this.isEdited(p)) chips.push({ text: '', tip: 'Edytowane', color: '#79b8ff', iEdit: true, padS: I });
+      const ex = this.exp(p);
+      if (ex === 'current') chips.push({ text: '', tip: 'W Albumie, aktualne', color: '#30d158', iCur: true, padS: I });
+      if (ex === 'changed') chips.push({ text: '', tip: 'Zmienione od eksportu', color: '#ffd60a', iChg: true, padS: I });
+      if (ex === 'new') chips.push({ text: '', tip: 'Nie wyeksportowane', color: 'rgba(235,235,245,.85)', iNew: true, padS: I });
+    }
+
+    const expNames = { current: 'w Albumie, aktualne', changed: 'zmienione od eksportu', new: 'nie wyeksportowane', skip: 'pomijane w eksporcie' };
+    const thumbs = list.map(x => {
+      const ex = this.exp(x);
+      const tw = x.A > 1 ? 66 : 32, th = x.A > 1 ? 44 : 48;
+      const lay = x.layers.concat(this.fx(x.edit));
+      const isSel = multi && s.sel.includes(x.id);
+      return {
+        id: x.id, title: x.file + (x.dark ? ' · Ciemnia' : '') + (this.isEdited(x) ? ' · edytowane' : '') + ' · ' + expNames[ex],
+        isSel, multi: isSel, curAttr: x.id === s.curId ? 'yes' : 'no',
+        imgS: 'width:' + tw + 'px;height:' + th + 'px;' + (x.rawOnly ? 'filter:blur(.4px);' : this.bright(x.edit)),
+        layers: lay.map(z => ({ s: z })),
+        dark: x.dark, edited: this.isEdited(x), raw: x.rawOnly,
+        eCur: ex === 'current', eChg: ex === 'changed', eNew: ex === 'new', eSkip: ex === 'skip',
+        click: (ev) => this.clickThumb(x.id, ev), open: () => this.openSingle(x.id), file: x.file,
+        gimgS: 'width:' + (x.A > 1 ? 168 : 75) + 'px;height:112px;' + (x.rawOnly ? 'filter:blur(.5px);' : ''),
+      };
+    });
+
+    let curV = { file: '', typeText: '', lens: '', iso: '', f: '', t: '', fl: '', time: '', darkText: '', darkColor: '', darkIconFill: 'none', editText: '', editColor: '', expText: '', expColor: '', rawOnly: false };
+    if (p) {
+      const e = p.edit; const parts = [];
+      if (e.cw < 0.999 || e.ch < 0.999) parts.push('kadr'); if (Math.abs(e.angle) > 0.05) parts.push('prost.'); if (e.temp || e.tint) parts.push('BB');
+      const ex = this.exp(p);
+      curV = {
+        file: p.file, rawOnly: p.rawOnly,
+        typeText: p.rawOnly ? 'tylko ARW' : 'JPG + ARW',
+        lens: p.meta.lens, iso: p.meta.iso, f: p.meta.f, t: p.meta.t, fl: p.meta.fl, time: p.meta.time,
+        darkText: p.dark ? (p.sent ? 'RAW w Ciemnia/' : 'Oznaczone') : 'Nie', darkColor: p.dark ? '#ffb340' : 'rgba(235,235,245,.62)', darkIconFill: p.dark ? '#ff9f0a' : 'none',
+        editText: parts.length ? parts.join(', ') : 'Brak', editColor: parts.length ? '#79b8ff' : 'rgba(235,235,245,.62)',
+        expText: { current: 'Aktualne', changed: 'Zmienione', new: 'Nie wyeksportowane', skip: 'Pomijane' }[ex],
+        expColor: { current: '#30d158', changed: '#ffd60a', new: 'rgba(255,255,255,.9)', skip: 'rgba(235,235,245,.62)' }[ex]
+      };
+    }
+
+    const helpGroups = [
+      { title: 'Nawigacja', items: [{ label: 'Następne (zostaw)', keys: ['→'] }, { label: 'Poprzednie', keys: ['←'] }, { label: 'Siatka ↔ pojedyncze', keys: ['G'] }, { label: 'Otwórz z siatki', keys: ['↩', '2× klik'] }, { label: 'Filtry', keys: ['⌘1', '⌘2', '⌘3'] }, { label: 'Otwórz folder', keys: ['⌘O'] }] },
+      { title: 'Decyzje', items: [{ label: 'Usuń do Kosza i dalej', keys: ['⌫'] }, { label: 'Ciemnia: oznacz i dalej', keys: ['C'] }, { label: 'W siatce: na zaznaczone', keys: ['⌫', 'C'] }] },
+      { title: 'Podgląd (przytrzymaj)', items: [{ label: 'Zoom 100% pod kursorem', keys: ['Z'] }, { label: 'Przed / po', keys: ['M'] }] },
+      { title: 'Edycja', items: [{ label: 'Światło i kolor', keys: ['E'] }, { label: 'Kadr i prostowanie', keys: ['R'] }, { label: 'Powrót do przeglądania', keys: ['D'] }, { label: 'Resetuj edycję', keys: ['⇧⌘R'] }] },
+      { title: 'Balans bieli', items: [{ label: 'Kopiuj', keys: ['⇧⌘C'] }, { label: 'Wklej na zaznaczone', keys: ['⇧⌘V'] }] },
+      { title: 'Zaznaczanie', items: [{ label: 'Dodaj / usuń', keys: ['⌘', 'klik'] }, { label: 'W siatce: przesuń', keys: ['←', '↑', '↓', '→'] }, { label: 'Zakres', keys: ['⇧', 'klik'] }, { label: 'Wszystkie', keys: ['⌘A'] }, { label: 'Ta ściąga', keys: ['?'] }] }
+    ];
+
+    const nd = darkPending.length;
+    const dVerb = nd === 1 ? 'zostanie przeniesiony' : this.pl(nd, '', 'zostaną przeniesione', 'zostanie przeniesionych');
+    const skipDark = s.photos.filter(x => x.dark).length, skipRaw = s.photos.filter(x => x.rawOnly && !x.dark).length;
+    const total = s.exportList.length || 1;
+    const curFile = s.photos.find(x => x.id === s.exportList[Math.min(s.exportDone, s.exportList.length - 1)]);
+    const sub = isMain ? '~/Obrazy/Sesje' : (s.screen === 'empty' ? '/Volumes/SD/DCIM' : 'Selekcja zdjęć po sesji');
+    const ed = p ? p.edit : this.defEdit(1.5);
+
+    return {
+      onKeyDown: (e) => this.onKeyDown(e), onKeyUp: (e) => this.onKeyUp(e),
+      onFocus: () => { if (!this.state.focused) this.setState({ focused: true }); },
+      onBlur: (e) => { if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return; this.setState({ focused: false, zoom: false, before: false }); },
+      folderName: s.screen === 'start' ? 'Photo Sift' : s.folder, folderSub: sub,
+      showToolbarControls: s.screen !== 'start', noPhotos: !s.photos.length || s.screen !== 'browse',
+      filters, editOn: editing, toggleEdit: () => this.toggleEdit(), openHelp: () => this.setState({ help: true }),
+      darkCount: nd, darkDisabled: !nd || s.screen !== 'browse', openDark: () => this.openSheet('dark'),
+      exportCount: expList.length, exportDisabled: !expList.length || s.screen !== 'browse', openExport: () => this.openSheet('export'),
+      isStart: s.screen === 'start', isEmpty: s.screen === 'empty', isMain,
+      dropS: s.dragOver ? 'border:2px solid #0a84ff;background:rgba(10,132,255,.12);' : 'border:2px dashed rgba(255,255,255,.2);background:rgba(255,255,255,.03);',
+      dropTitle: s.dragOver ? 'Upuść, aby otworzyć' : 'Upuść tutaj folder z sesją',
+      onDragOver: (e) => { e.preventDefault(); if (!this.state.dragOver) this.setState({ dragOver: true }); },
+      onDragLeave: () => this.setState({ dragOver: false }),
+      onDrop: (e) => { e.preventDefault(); this.setState({ dragOver: false }); this.openFolder(); },
+      openDemo: () => this.openFolder(),
+      recents: [
+        { name: '2026-11-16 Tatry', path: '~/Obrazy/Sesje', info: '60 zdjęć · skończono na 47', date: 'wczoraj', click: () => this.openFolder() },
+        { name: '2026-11-02 Portrety Ania', path: '~/Obrazy/Sesje', info: '214 zdjęć · przejrzane', date: '2 lis', click: () => this.openFolder() },
+        { name: '2026-10-19 Kraków nocą', path: '~/Obrazy/Sesje', info: '388 zdjęć · skończono na 120', date: '19 paź', click: () => this.openFolder() },
+        { name: 'Karta SD — import 03.09', path: '/Volumes/SD/DCIM', info: 'brak zdjęć', date: '3 wrz', click: () => this.openFolder('sd') }
+      ],
+      backToStart: () => this.setState({ screen: 'start' }),
+      showBrowseStage: hasCur && list.length > 0 && !s.done && !cropTool,
+      showEditStage: hasCur && list.length > 0 && !s.done && cropTool,
+      pv: view.pv, ed: view.ed,
+      filterEmpty: isMain && !list.length && !!s.photos.length,
+      filterEmptyTitle: s.filter === 'dark' ? 'Brak zdjęć w Ciemni' : 'Brak edytowanych zdjęć',
+      showAll: () => this.setFilter('all'),
+      chips: chips.map(chipText), zoomOn: s.zoom && hasCur && !cropTool, beforeOn: s.before && hasCur,
+      toastOn: !!s.toast, toastText: s.toast ? s.toast.text : '', toastSub: s.toast ? s.toast.sub : '', toastSubOn: !!(s.toast && s.toast.sub),
+      doneOn: isMain && s.done && !grid, doneSub: s.folder + ' · zostało ' + s.photos.length + ' ' + this.pl(s.photos.length, 'zdjęcie', 'zdjęcia', 'zdjęć'), doneDeleted: s.deleted,
+      restart: () => { const l = this.filtered(); if (l.length) this.setState({ done: false, curId: l[0].id, sel: [l[0].id], anchor: l[0].id }); },
+      posText: idx >= 0 ? (idx + 1) + ' / ' + list.length : '– / ' + list.length,
+      prev: () => grid ? this.gridMove(-1) : this.go(-1), next: () => grid ? this.gridMove(1) : this.go(1), del: () => grid ? this.delSel() : this.del(), toggleDark: () => grid ? this.darkSel() : this.toggleDark(),
+      delTip: grid && multi ? 'Usuń zaznaczone do Kosza (⌫)' : 'Usuń do Kosza (⌫)', darkTip: grid && multi ? 'Ciemnia dla zaznaczonych (C)' : 'Oznacz do Ciemni (C)',
+      singleOn: !grid, gridOn: grid, showSingle: () => { if (grid) this.toggleView(); }, showGrid: () => { if (!grid) this.toggleView(); },
+      gridInfo: list.length + ' ' + this.pl(list.length, 'zdjęcie', 'zdjęcia', 'zdjęć') + (s.filter === 'all' ? '' : ' · filtr: ' + ({ dark: 'Ciemnia', edited: 'Edytowane' })[s.filter]),
+      selCountText: s.sel.length + ' ' + this.pl(s.sel.length, 'zaznaczone', 'zaznaczone', 'zaznaczonych'),
+      curDark: grid && multi ? s.sel.every(id => { const x = s.photos.find(y => y.id === id); return x && x.dark; }) : !!(p && p.dark), noCur: !hasCur || (s.done && !grid), hasCur,
+      beforeDown: () => this.setState({ before: true }), beforeUp: () => { if (this.state.before) this.setState({ before: false }); },
+      zoomDown: () => this.setState({ zoom: true, zx: 50, zy: 40 }), zoomUp: () => { if (this.state.zoom) this.setState({ zoom: false }); },
+      mouseZoomStart: (e) => { if (!this.canZoom() || e.button !== 0) return; this.areaMove({ currentTarget: document.getElementById('ps-area'), clientX: e.clientX, clientY: e.clientY }); this.mouseZoom = true; this.setState({ zoom: true, zx: this.mx, zy: this.my }); },
+      areaMove: (e) => this.areaMove(e), areaUp: () => this.areaUp(),
+      thumbs, cur: curV,
+      insBrowse: hasCur && !editing, insEdit: hasCur && editing && !locked, insLocked: hasCur && editing && locked,
+      toolColor: s.tool === 'color', toolCrop: s.tool === 'crop',
+      pickColor: () => this.setState({ tool: 'color' }), pickCrop: () => this.setState({ tool: 'crop', zoom: false }),
+      multiOn: multi, multiBox: multi && !grid, selCount: s.sel.length, multiTitle: 'Zaznaczono ' + s.sel.length + ' ' + this.pl(s.sel.length, 'zdjęcie', 'zdjęcia', 'zdjęć'), clearSel: () => this.setState({ sel: s.curId ? [s.curId] : [] }),
+      orientH: ed.orient === 'h', orientV: ed.orient === 'v', setH: () => this.setOrient('h'), setV: () => this.setOrient('v'),
+      angleVal: ed.angle, angleText: this.num(ed.angle, 1) + '°',
+      expoVal: ed.exp || 0, expoText: this.num(ed.exp || 0, 2) + ' EV',
+      tempVal: ed.temp, tempText: this.num(ed.temp, 0),
+      tintVal: ed.tint, tintText: this.num(ed.tint, 0),
+      onAngle: (e) => this.setEdit({ angle: parseFloat(e.target.value) }),
+      onExpo: (e) => this.setEdit({ exp: parseFloat(e.target.value) }),
+      onTemp: (e) => this.setEdit({ temp: parseInt(e.target.value, 10) }),
+      onTint: (e) => this.setEdit({ tint: parseInt(e.target.value, 10) }),
+      zeroAngle: () => this.setEdit({ angle: 0 }), zeroExpo: () => this.setEdit({ exp: 0 }), zeroTemp: () => this.setEdit({ temp: 0 }), zeroTint: () => this.setEdit({ tint: 0 }),
+      copyWB: () => this.copyWB(), pasteWB: () => this.pasteWB(), pasteDisabled: !s.clipboard,
+      pasteLabel: multi ? 'Wklej balans bieli na ' + s.sel.length + ' zaznaczone (⇧⌘V)' : 'Wklej balans bieli (⇧⌘V)',
+      resetEdit: () => this.resetEdit(), resetDisabled: !(p && this.isEdited(p)),
+      lockTitle: p && p.rawOnly && !p.dark ? 'Edycja niedostępna' : 'Edycja zablokowana',
+      lockText: p && p.dark ? 'Zdjęcie jest w Ciemni — obrobisz je w Lightroomie z pliku RAW.' : 'Brak JPEG-a. Photo Sift edytuje tylko JPEG-i.',
+      lockCanUnmark: !!(p && p.dark && !p.sent),
+      sheetOn: !!s.sheet && isMain, sheetDark: s.sheet === 'dark', sheetExport: s.sheet === 'export',
+      darkSheetText: nd + ' ' + this.pl(nd, 'plik RAW', 'pliki RAW', 'plików RAW') + ' ' + dVerb + ' do Ciemnia/ (razem z plikami XMP).',
+      darkFiles: darkPending.map(x => ({ file: x.file })),
+      closeSheet: () => this.closeSheet(), confirmDark: () => this.confirmDark(), confirmExport: () => this.confirmExport(), stopExport: () => this.stopExport(),
+      showInFinder: () => this.toast('Album/ otworzy się w Finderze', ''),
+      exportTitle: s.exportPhase === 'running' ? 'Eksportowanie do Album/…' : s.exportPhase === 'done' ? 'Eksport zakończony' : 'Eksportuj do Album/',
+      exportConfirm: s.exportPhase === 'confirm', exportRunning: s.exportPhase === 'running', exportFinished: s.exportPhase === 'done',
+      exportSummary: expNew + ' ' + this.pl(expNew, 'nowe', 'nowe', 'nowych') + ', ' + expUpd + ' do aktualizacji',
+      expNew, expUpd,
+      expSkipText: skipDark + ' w Ciemni' + (skipRaw ? ', ' + skipRaw + ' tylko RAW' : ''),
+      progText: Math.min(s.exportDone, total) + ' z ' + total + ' ' + this.pl(total, 'zdjęcia', 'zdjęć', 'zdjęć'),
+      progPct: Math.round(Math.min(s.exportDone, total) / total * 100),
+      progFile: curFile ? (this.exp(curFile) === 'changed' ? 'Aktualizuję ' : this.isEdited(curFile) ? 'Renderuję ' : 'Kopiuję ') + curFile.file + '.JPG' : '',
+      doneText: 'Zapisano ' + s.exported + ' ' + this.pl(s.exported, 'zdjęcie', 'zdjęcia', 'zdjęć') + ' w Album/. Nic nie zostało usunięte.',
+      helpOn: s.help, closeHelp: (e) => { if (e && e.target !== e.currentTarget) return; this.setState({ help: false }); }, helpGroups
+    };
+  }
+}
+</script>
+</body>
+</html>

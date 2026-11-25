@@ -1,0 +1,13 @@
+# Prawdziwe zdjęcia testowe — duże, nie trafiają do repozytorium
+assets/
+
+# Xcode / SwiftPM
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
