@@ -42,6 +42,8 @@ struct RangeSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let step: Double
+    /// Change per arrow-key press and per accessibility increment/decrement.
+    let keyStep: Double
     let track: SliderTrack
     let onEditingChanged: (Bool) -> Void
 
@@ -88,12 +90,12 @@ struct RangeSlider: View {
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
-        .onKeyPress(.leftArrow) { nudge(-1) }
-        .onKeyPress(.downArrow) { nudge(-1) }
-        .onKeyPress(.rightArrow) { nudge(1) }
-        .onKeyPress(.upArrow) { nudge(1) }
+        .onKeyPress(.leftArrow) { nudge(-step) }
+        .onKeyPress(.downArrow) { nudge(-keyStep) }
+        .onKeyPress(.rightArrow) { nudge(step) }
+        .onKeyPress(.upArrow) { nudge(keyStep) }
         .accessibilityRepresentation {
-            Slider(value: Binding(get: { value }, set: { value = snapped($0) }), in: range, step: step)
+            Slider(value: Binding(get: { value }, set: { value = snapped($0) }), in: range, step: keyStep)
         }
     }
 
@@ -106,8 +108,8 @@ struct RangeSlider: View {
         min(max((raw / step).rounded() * step, range.lowerBound), range.upperBound)
     }
 
-    private func nudge(_ direction: Double) -> KeyPress.Result {
-        value = snapped(value + direction * step)
+    private func nudge(_ delta: Double) -> KeyPress.Result {
+        value = snapped(value + delta)
         return .handled
     }
 

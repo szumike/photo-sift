@@ -79,7 +79,7 @@ Usunięcie natychmiast przenosi do Kosza cały komplet: JPEG, ARW i XMP. Nie dot
 | Balans bieli: temperatura i tint | MVP |
 | Kopiowanie balansu bieli na zaznaczone zdjęcia | MVP |
 | Ekspozycja | MVP |
-| Światła i Cienie (highlights / shadows) | eksperyment na gałęzi `experiment/highlights-shadows`, do decyzji |
+| Światła i Cienie (highlights / shadows) | zaimplementowane prostym filtrem macOS, **ukryte w interfejsie** (na przyszłość) |
 
 - Edycje to parametry zapisane w pliku XMP. Oryginalny JPEG nigdy nie jest zmieniany.
 - Edycje zostają po eksporcie, więc każdą można później zmienić i wyeksportować ponownie.
@@ -129,6 +129,7 @@ Para JPEG + ARW ma wspólny plik `DSC01234.xmp`, a Lightroom czyta go jako plik 
 - Przyciski i kafle bez obwódek: rozróżnia je tylko tło.
 - Suwaki bez dodatkowych linii czy znaczników pod spodem.
 - Dolny kafel panelu bocznego sięga do dołu okna, jak w prototypie.
+- Suwak ma fokus klawiatury: strzałki ↑/↓ zmieniają ekspozycję o 0,1 EV, a pozostałe suwaki o 5.
 - Suwaki temperatury, tintu i ekspozycji wyglądają jak w prototypie: cienki tor z gradientem (temperatura niebieski → szary → pomarańczowy, tint zielony → szary → magenta, ekspozycja czarny → szary → biały) i jasny okrągły uchwyt.
 - Ikona aplikacji: wersja „1f · Czerwień” z designu (`docs/design/app-icon-1f.svg`).
 - Nagłówek siatki („4 zdjęcia”, „4 zaznaczone”) bez linii pod spodem.

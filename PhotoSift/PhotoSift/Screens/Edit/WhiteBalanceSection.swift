@@ -8,6 +8,9 @@ import SwiftUI
 struct WhiteBalanceSection: View {
     let session: Session
 
+    /// Ukryte na życzenie użytkownika, kod zostaje na przyszłość.
+    static let showsHighlightsShadows = false
+
     var body: some View {
         let params = session.currentEditParams
         VStack(alignment: .leading, spacing: 10) {
@@ -16,21 +19,24 @@ struct WhiteBalanceSection: View {
                 title: "Ekspozycja", id: "edit.exposure",
                 value: binding(params?.exposure ?? 0) { $0.exposure = $1 },
                 range: -2...2, step: 0.05, neutral: 0, track: .exposure, format: Self.formatEV,
-                onEditingChanged: gesture
+                onEditingChanged: gesture, keyStep: 0.1
             )
-            EditSlider(
-                title: "Światła", id: "edit.highlights",
-                value: binding(params?.highlights ?? 0) { $0.highlights = $1 },
-                range: -100...100, step: 1, neutral: 0, track: .plain, format: Self.format,
-                onEditingChanged: gesture
-            )
-            EditSlider(
-                title: "Cienie", id: "edit.shadows",
-                value: binding(params?.shadows ?? 0) { $0.shadows = $1 },
-                range: -100...100, step: 1, neutral: 0, track: .plain, format: Self.format,
-                onEditingChanged: gesture
-            )
-            .padding(.bottom, 8)
+            .padding(.bottom, Self.showsHighlightsShadows ? 0 : 8)
+            if Self.showsHighlightsShadows {
+                EditSlider(
+                    title: "Światła", id: "edit.highlights",
+                    value: binding(params?.highlights ?? 0) { $0.highlights = $1 },
+                    range: -100...100, step: 1, neutral: 0, track: .plain, format: Self.format,
+                    onEditingChanged: gesture, keyStep: 5
+                )
+                EditSlider(
+                    title: "Cienie", id: "edit.shadows",
+                    value: binding(params?.shadows ?? 0) { $0.shadows = $1 },
+                    range: -100...100, step: 1, neutral: 0, track: .plain, format: Self.format,
+                    onEditingChanged: gesture, keyStep: 5
+                )
+                .padding(.bottom, 8)
+            }
             HStack {
                 EditSectionLabel("Balans bieli")
                 Spacer()
@@ -52,13 +58,13 @@ struct WhiteBalanceSection: View {
                 title: "Temperatura", id: "edit.temperature",
                 value: binding(params?.temperature ?? 0) { $0.temperature = $1 },
                 range: -100...100, step: 1, neutral: 0, track: .temperature, format: Self.format,
-                onEditingChanged: gesture
+                onEditingChanged: gesture, keyStep: 5
             )
             EditSlider(
                 title: "Tint", id: "edit.tint",
                 value: binding(params?.tint ?? 0) { $0.tint = $1 },
                 range: -100...100, step: 1, neutral: 0, track: .tint, format: Self.format,
-                onEditingChanged: gesture
+                onEditingChanged: gesture, keyStep: 5
             )
         }
         .padding(.top, 16)

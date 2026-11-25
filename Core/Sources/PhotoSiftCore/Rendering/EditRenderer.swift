@@ -23,47 +23,18 @@ public enum EditRenderer {
         }
     }
 
-    /// Slider (-100...100) to highlights/shadows mapping constants. All values are in stops (EV) of
-    /// linear light unless noted. See `HighlightsShadowsKernels` for the algorithm.
+    /// Slider (-100...100) to highlights/shadows mapping constants.
     public enum HighlightsShadows {
-        /// Box radius of the guided filter as a fraction of the image's long side. Radii are in pixels,
-        /// so a fixed value would make the screen-sized preview and the full-resolution export differ;
-        /// scaling with the image keeps them the same. Larger = smoother, more local-contrast-safe base.
-        public static let guidedRadiusFraction = 0.02
-        /// Guided filter regularisation in EV^2. The filter uses a steeper form than He et al.,
-        /// `a = v^2 / (v^2 + eps^2)` with v the window variance of log2 luminance, so large edges (variance
-        /// well above eps, e.g. a 3 EV edge has v = 2.25) keep the base on `L` and get no halo, while fine
-        /// texture of about 1 EV peak to peak (v = 0.25) is smoothed into the base and keeps its contrast.
-        public static let guidedEpsilon = 0.5
-        /// Log-luminance range (log2 of linear Y) stored in the blurred intermediate image. 14 stops
-        /// below to 2 above white cover any realistic photo; values outside are clamped.
-        public static let logRange = -12.0...2.0
+        /// `CIHighlightShadowAdjust` radius as a fraction of the (cropped) image's long side. Radii are in
+        /// pixels, so scaling with the image keeps the screen-sized preview and the export the same.
+        public static let radiusFraction = 0.01
+        /// `CIToneCurve` midtone-ish points of the highlights +100 curve: the y offset at x = 0.5 and 0.75.
+        public static let brightenOffsetAtHalf = 0.03
+        public static let brightenOffsetAtThreeQuarters = 0.08
 
-        /// Shift of the base at slider +100 (negative sliders shift the other way). Shadows lift up to
-        /// 1.5 EV and highlights recover up to 1.25 EV. Brightening highlights has little headroom, so
-        /// its span is smaller (the soft clip below handles the rest).
-        public static let shadowSpanEV = 1.5
-        public static let highlightRecoverSpanEV = 1.25
-        public static let highlightBrightenSpanEV = 0.6
-
-        /// Tonal masks over the smoothed base luminance (log2 of linear Y; mid grey is about -2.5, sRGB
-        /// 0.5 is -2.2). Shadows have full weight below `shadowMask.lowerBound` and none above the upper
-        /// bound; highlights are the mirror image. The gap in between keeps midtones almost untouched.
-        public static let shadowMask = -6.5 ... -2.0
-        public static let highlightMask = -2.0 ... -0.4
-
-        /// Soft clip: positive adjustments that would push the brightest channel above `softClipKnee`
-        /// are compressed exponentially towards 1, scaling all channels together (hue is preserved).
-        public static let softClipKnee = 0.8
-
-        /// Extra saturation (fraction per EV of shadow lift) that offsets the perceived colour loss in
-        /// lifted shadows. Subtle: about +9% chroma at the full 1.5 EV lift.
-        public static let saturationPerEV = 0.06
-
-        public static func shadowEV(_ shadows: Double) -> Double { shadows / 100 * shadowSpanEV }
-        public static func highlightEV(_ highlights: Double) -> Double {
-            highlights / 100 * (highlights < 0 ? highlightRecoverSpanEV : highlightBrightenSpanEV)
-        }
+        public static func shadowAmount(_ shadows: Double) -> Double { shadows / 100 }
+        /// Input of `CIHighlightShadowAdjust` for highlights in -100...0 (1 = untouched, 0 = full recovery).
+        public static func highlightAmount(_ highlights: Double) -> Double { 1 + highlights / 100 }
     }
 
     public enum RenderError: Error {
@@ -117,10 +88,31 @@ public enum EditRenderer {
             filter.setValue(params.exposure, forKey: kCIInputEVKey)
             image = filter.outputImage ?? image
         }
-        if params.highlights != 0 || params.shadows != 0 {
-            image = HighlightsShadowsKernels.apply(
-                shadows: params.shadows, highlights: params.highlights, to: image
-            )
+        image = adjustHighlightsShadows(image, highlights: params.highlights, shadows: params.shadows)
+        return image
+    }
+
+    private static func adjustHighlightsShadows(_ input: CIImage, highlights: Double, shadows: Double) -> CIImage {
+        guard highlights != 0 || shadows != 0 else { return input }
+        var image = input
+        if shadows != 0 || highlights < 0 {
+            let filter = CIFilter(name: "CIHighlightShadowAdjust")!
+            filter.setValue(image, forKey: kCIInputImageKey)
+            filter.setValue(HighlightsShadows.shadowAmount(shadows), forKey: "inputShadowAmount")
+            filter.setValue(HighlightsShadows.highlightAmount(min(highlights, 0)), forKey: "inputHighlightAmount")
+            filter.setValue(HighlightsShadows.radiusFraction * max(image.extent.width, image.extent.height), forKey: kCIInputRadiusKey)
+            image = filter.outputImage ?? image
+        }
+        if highlights > 0 {
+            let h = highlights / 100
+            let filter = CIFilter(name: "CIToneCurve")!
+            filter.setValue(image, forKey: kCIInputImageKey)
+            filter.setValue(CIVector(x: 0, y: 0), forKey: "inputPoint0")
+            filter.setValue(CIVector(x: 0.25, y: 0.25), forKey: "inputPoint1")
+            filter.setValue(CIVector(x: 0.5, y: 0.5 + HighlightsShadows.brightenOffsetAtHalf * h), forKey: "inputPoint2")
+            filter.setValue(CIVector(x: 0.75, y: 0.75 + HighlightsShadows.brightenOffsetAtThreeQuarters * h), forKey: "inputPoint3")
+            filter.setValue(CIVector(x: 1, y: 1), forKey: "inputPoint4")
+            image = filter.outputImage ?? image
         }
         return image
     }

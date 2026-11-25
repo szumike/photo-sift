@@ -128,6 +128,8 @@ struct EditSlider: View {
     var track: SliderTrack = .plain
     let format: (Double) -> String
     let onEditingChanged: (Bool) -> Void
+    /// Arrow-key and accessibility increment; defaults to the drag `step`.
+    var keyStep: Double?
 
     var body: some View {
         VStack(spacing: 4) {
@@ -139,7 +141,10 @@ struct EditSlider: View {
                     .accessibilityIdentifier("\(id).value")
             }
             .font(.system(size: 12))
-            RangeSlider(value: $value, range: range, step: step, track: track, onEditingChanged: onEditingChanged)
+            RangeSlider(
+                value: $value, range: range, step: step, keyStep: keyStep ?? step,
+                track: track, onEditingChanged: onEditingChanged
+            )
                 .simultaneousGesture(TapGesture(count: 2).onEnded { value = neutral })
                 .accessibilityLabel(title)
                 .accessibilityIdentifier(id)

@@ -148,6 +148,7 @@ final class EditPanelUITests: XCTestCase {
 
     @MainActor
     func testShadowsChangeWritesXMP() throws {
+        throw XCTSkip("Suwaki Światła/Cienie ukryte na życzenie użytkownika, kod zostaje na przyszłość")
         let app = try launch(.init(pairs: ["DSC00001"]))
         app.typeKey("e", modifierFlags: [])
         let slider = element(app, "edit.shadows")
