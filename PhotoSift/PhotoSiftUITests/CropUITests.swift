@@ -34,7 +34,9 @@ final class CropUITests: XCTestCase {
 
     /// Pixel size from the label "3:2 · 600 × 400".
     private func cropSize(_ app: XCUIApplication) throws -> (ratio: String, width: Double, height: Double) {
-        let text = element(app, "crop.size").text
+        let label = element(app, "crop.size")
+        // Fail fast: reading a missing element retries for a very long time.
+        let text = try XCTUnwrap(label.waitForExistence(timeout: 5) ? label : nil, "crop.size not shown").text
         let parts = text.components(separatedBy: " · ")
         let numbers = try XCTUnwrap(parts.last).components(separatedBy: " × ").compactMap(Double.init)
         XCTAssertEqual(numbers.count, 2, text)

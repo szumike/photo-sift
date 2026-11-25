@@ -84,7 +84,7 @@ final class EditPanelUITests: XCTestCase {
         app.typeKey("e", modifierFlags: [])
         let slider = element(app, "edit.temperature")
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
-        slider.adjust(toNormalizedSliderPosition: 0.8)
+        slider.drag(toNormalizedPosition: 0.8)
         XCTAssertNotEqual(element(app, "edit.temperature.value").text, "0")
         let xmp = try waitForXMP("DSC00001")
         XCTAssertTrue(xmp.contains("photosift"))
@@ -97,7 +97,7 @@ final class EditPanelUITests: XCTestCase {
         let slider = element(app, "edit.temperature")
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
         let original = element(app, "edit.temperature.value").text
-        slider.adjust(toNormalizedSliderPosition: 0.8)
+        slider.drag(toNormalizedPosition: 0.8)
         let changed = element(app, "edit.temperature.value").text
         XCTAssertNotEqual(changed, original)
         _ = try waitForXMP("DSC00001")
@@ -127,7 +127,7 @@ final class EditPanelUITests: XCTestCase {
         app.typeKey("e", modifierFlags: [])
         let slider = element(app, "edit.exposure")
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
-        slider.adjust(toNormalizedSliderPosition: 0.75)
+        slider.drag(toNormalizedPosition: 0.75)
         XCTAssertNotEqual(element(app, "edit.exposure.value").text, "0 EV")
 
         let url = try XCTUnwrap(fixture).url.appendingPathComponent("DSC00001.xmp")
@@ -153,7 +153,7 @@ final class EditPanelUITests: XCTestCase {
         app.typeKey("e", modifierFlags: [])
         let slider = element(app, "edit.shadows")
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
-        slider.adjust(toNormalizedSliderPosition: 0.75)
+        slider.drag(toNormalizedPosition: 0.75)
         XCTAssertNotEqual(element(app, "edit.shadows.value").text, "0")
 
         let url = try XCTUnwrap(fixture).url.appendingPathComponent("DSC00001.xmp")
@@ -199,16 +199,16 @@ final class EditPanelUITests: XCTestCase {
         app.typeKey("e", modifierFlags: [])
         let slider = element(app, "edit.temperature")
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
-        slider.adjust(toNormalizedSliderPosition: 0.8)
+        slider.drag(toNormalizedPosition: 0.8)
         app.typeKey("c", modifierFlags: [.command, .shift])
         app.typeKey("d", modifierFlags: [])
         app.typeKey("g", modifierFlags: [])
         XCTAssertTrue(element(app, "screen.grid").waitForExistence(timeout: 5))
 
         element(app, "grid.cell.DSC00002").click()
-        XCUIElement.perform(withKeyModifiers: .command) {
-            element(app, "grid.cell.DSC00003").click()
-            element(app, "grid.cell.DSC00004").click()
+        // One ⌘-click per `perform` block, as in GridUITests: two clicks inside one block lose the modifier.
+        for name in ["DSC00003", "DSC00004"] {
+            XCUIElement.perform(withKeyModifiers: .command) { element(app, "grid.cell.\(name)").click() }
         }
         app.typeKey("v", modifierFlags: [.command, .shift])
 
@@ -222,4 +222,13 @@ final class EditPanelUITests: XCTestCase {
 
 private extension XCUIElement {
     var text: String { (value as? String) ?? label }
+
+    /// Drags the slider thumb (starting at its current centre position) to `position` of the track, like a user.
+    /// `adjust(toNormalizedSliderPosition:)` cannot be used: the custom slider exposes no AXOrientation.
+    func drag(toNormalizedPosition position: CGFloat) {
+        let start = coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = coordinate(withNormalizedOffset: CGVector(dx: position, dy: 0.5))
+        // `press(forDuration:)` sends no mouse events on macOS; a click that holds and then drags does.
+        start.click(forDuration: 0.3, thenDragTo: end)
+    }
 }

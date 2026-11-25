@@ -6,13 +6,20 @@ import PhotoSiftTestSupport
 private final class FakeImporter: PhotosImporting, @unchecked Sendable {
     var existing: Set<String> = []
     var error: PhotosImportError?
+    var failing: [String: String] = [:]
+    var afterImport: (() -> Void)?
     private(set) var calls: [(ids: [String], album: String)] = []
 
     func importRaws(_ items: [(id: String, rawURL: URL)], albumTitle: String) async throws -> PhotosImportReport {
         if let error { throw error }
+        defer { afterImport?() }
         calls.append((items.map(\.id), albumTitle))
         var report = PhotosImportReport()
         for item in items {
+            if let reason = failing[item.id] {
+                report.failures[item.id] = reason
+                continue
+            }
             let identifier = "asset-\(item.id)-\(calls.count)"
             existing.insert(identifier)
             report.assetIDs[item.id] = identifier
@@ -104,14 +111,64 @@ struct SessionPhotosTests {
         #expect(session.isInPhotos(item))
     }
 
-    @Test func staleAssetIsReimportedBySendWithoutPressingC() async throws {
+    @Test func staleAssetIsNotReimportedWithoutPressingC() async throws {
+        // The send imports exactly what the toolbar count and the sheet show.
         let importer = FakeImporter()
         let (session, _) = try make(.init(pairs: ["A1"]), importer: importer)
         session.toggleDarkroom()
         await session.sendToDarkroom(target: .photos)
         importer.existing.removeAll()
+        #expect(session.darkroomCount == 0)
         await session.sendToDarkroom(target: .photos)
-        #expect(importer.calls.count == 2)
+        #expect(importer.calls.count == 1)
+    }
+
+    @Test func importsOnlyWhatTheCountShows() async throws {
+        let importer = FakeImporter()
+        let (session, _) = try make(.init(pairs: ["A1", "A2"]), importer: importer)
+        session.toggleDarkroom()
+        await session.sendToDarkroom(target: .photos)
+        importer.existing.removeAll()
+        session.next()
+        session.toggleDarkroom()
+        #expect(session.darkroomCount == 1)
+        await session.sendToDarkroom(target: .photos)
+        #expect(importer.calls.last?.ids == ["A2"])
+    }
+
+    @Test func partialFailureNamesThePhotoAndKeepsItMarked() async throws {
+        let importer = FakeImporter()
+        importer.failing = ["A2": "nieobsługiwany format"]
+        let (session, _) = try make(.init(pairs: ["A1", "A2"]), importer: importer)
+        session.toggleDarkroom()
+        session.next()
+        session.toggleDarkroom()
+        await session.sendToDarkroom(target: .photos)
+
+        let failed = try #require(session.photo(id: "A2"))
+        #expect(session.isInPhotos(try #require(session.photo(id: "A1"))))
+        #expect(!session.isInPhotos(failed))
+        #expect(session.isMarked(failed))
+        #expect(session.darkroomCount == 1)
+        #expect(session.toast?.text == "Dodano 1 plik RAW do Zdjęć")
+        #expect(session.toast?.subtext?.contains("A2 (nieobsługiwany format)") == true)
+    }
+
+    @Test func failedXMPWriteStillPreventsDuplicateInThisSession() async throws {
+        let importer = FakeImporter()
+        let (session, folder) = try make(.init(pairs: ["A1"]), importer: importer)
+        session.toggleDarkroom()
+        let fm = FileManager.default
+        importer.afterImport = { try? fm.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path) }
+        defer { try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
+
+        await session.sendToDarkroom(target: .photos)
+        #expect(session.isInPhotos(try #require(session.photo(id: "A1"))))
+        #expect(session.darkroomCount == 0)
+        #expect(session.toast?.subtext?.contains("Nie udało się zapisać XMP: A1") == true)
+
+        await session.sendToDarkroom(target: .photos)
+        #expect(importer.calls.count == 1)
     }
 
     @Test func authorizationFailureChangesNothing() async throws {

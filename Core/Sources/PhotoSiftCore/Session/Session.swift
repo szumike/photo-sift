@@ -101,10 +101,13 @@ public final class Session {
         currentID.flatMap { id in visiblePhotos.firstIndex { $0.id == id } }.map { $0 + 1 }
     }
 
-    /// Marked for Darkroom with a RAW still in the session folder.
-    public var darkroomCount: Int {
-        photos.filter { isMarked($0) && !isSent($0) && $0.rawURL != nil }.count
+    /// Marked for Darkroom, not sent yet, with a RAW still in the session folder: what the toolbar counts,
+    /// the sheet lists and "Do Ciemni" sends, for either target.
+    public var darkroomPending: [PhotoItem] {
+        photos.filter { isMarked($0) && !isSent($0) && $0.rawURL != nil }
     }
+
+    public var darkroomCount: Int { darkroomPending.count }
 
     public func photo(id: String) -> PhotoItem? { photos.first { $0.id == id } }
     public func state(of id: String) -> SidecarState { states[id] ?? SidecarState() }
@@ -471,7 +474,7 @@ public final class Session {
     }
 
     private func moveToDarkroomFolder() async {
-        let items = photos.filter { isMarked($0) && !isSent($0) && $0.rawURL != nil }
+        let items = darkroomPending
         guard !items.isEmpty else { return }
         let folder = folder
         let report = await Task.detached { DarkroomMover(sessionFolder: folder).send(items) }.value
@@ -499,14 +502,10 @@ public final class Session {
     }
 
     private func importIntoPhotos() async {
-        let candidates = photos.filter { isMarked($0) && !$0.isSentToDarkroom && $0.rawURL != nil }
-        var items: [(id: String, rawURL: URL)] = []
-        for item in candidates {
-            if let assetID = states[item.id]?.photosAssetID, photosImporter.assetExists(assetID) {
-                continue
-            } else if let rawURL = item.rawURL {
-                items.append((item.id, rawURL))
-            }
+        // Exactly what the toolbar and the sheet show. A photo whose asset vanished from Photos goes back
+        // only after C releases it (`releaseVanishedPhotosAssets`), so the sheet never under-reports.
+        let items: [(id: String, rawURL: URL)] = darkroomPending.compactMap { item in
+            item.rawURL.map { (item.id, $0) }
         }
         guard !items.isEmpty else { return }
         let albumTitle = folder.lastPathComponent
@@ -529,16 +528,15 @@ public final class Session {
             return
         }
 
-        var failedIDs = report.failures.keys.sorted()
+        let failedIDs = report.failures.keys.sorted()
+        var unsavedIDs: [String] = []
         var added = 0
         for item in items {
             guard let assetID = report.assetIDs[item.id], let current = photo(id: item.id) else { continue }
             var state = self.state(of: item.id)
             state.photosAssetID = assetID
-            guard persistNow(state, for: current) else {
-                failedIDs.append(item.id)
-                continue
-            }
+            // The asset exists even if the XMP write fails: keep it in memory so this session never imports it again.
+            if !persistNow(state, for: current) { unsavedIDs.append(item.id) }
             states[item.id] = state
             histories[item.id] = nil
             added += 1
@@ -546,8 +544,14 @@ public final class Session {
         refreshExportCount()
 
         var details = ["Album „\(albumTitle)”. Pliki w folderze bez zmian."]
-        if !failedIDs.isEmpty { details.append("Błędy: \(failedIDs.joined(separator: ", ")).") }
-        toast = Toast("Dodano \(PolishPlural.rawFiles(added)) do Zdjęć", subtext: details.joined(separator: " "))
+        if !failedIDs.isEmpty {
+            details.append("Nie dodano: \(failedIDs.map { "\($0) (\(report.failures[$0] ?? ""))" }.joined(separator: ", ")).")
+        }
+        if !unsavedIDs.isEmpty {
+            details.append("Nie udało się zapisać XMP: \(unsavedIDs.joined(separator: ", ")). Są już w Zdjęciach — po ponownym otwarciu folderu nie wysyłaj ich drugi raz.")
+        }
+        let title = added == 0 ? "Nie udało się dodać do Zdjęć" : "Dodano \(PolishPlural.rawFiles(added)) do Zdjęć"
+        toast = Toast(title, subtext: details.joined(separator: " "))
     }
 
     /// Clears the stored Photos asset of every photo whose asset the user deleted from the library, so it can be

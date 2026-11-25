@@ -93,6 +93,8 @@ Usunięcie natychmiast przenosi do Kosza cały komplet: JPEG, ARW i XMP. Nie dot
 - **Cel „Do Ciemni” wybiera się w Ustawieniach (⌘,):**
   - **Folder `Ciemnia/`** (domyślnie): ARW i jego XMP są przenoszone do podfolderu `Ciemnia/`, jak opisano niżej.
   - **Zdjęcia (Photos):** do aplikacji Zdjęcia trafia **tylko plik RAW**, do albumu o nazwie folderu sesji. Jeśli taki album już istnieje, zdjęcia są do niego dodawane. Pliki w folderze sesji zostają bez zmian. Aplikacja zapamiętuje w XMP pary, że zdjęcie wysłano (identyfikator zdjęcia w bibliotece), żeby nie dodać go drugi raz. Takie zdjęcie jest traktowane jak wysłane do Ciemni: edycja zablokowana, pomijane w eksporcie.
+  - Jeśli usunę takie zdjęcie w aplikacji Zdjęcia, naciśnięcie C na nim w Photo Sift zdejmuje znacznik wysłania (zdjęcie jest znów oznaczone jako Ciemnia) i można je wysłać ponownie. Bez C „Do Ciemni” go nie wyśle, bo licznik i arkusz pokazują dokładnie to, co zostanie wysłane.
+  - Jeśli pojedynczego pliku nie da się dodać, pozostałe zostają dodane, a komunikat podaje nazwę i powód błędu.
 - Zdjęcia bez pliku RAW (sam JPEG) nie da się oznaczyć jako Ciemnia. Aplikacja pokazuje komunikat „Brak pliku RAW — nie można wysłać do Ciemni”.
 - Przycisk **Do Ciemni** przenosi oznaczone `DSC01234.ARW` razem z ich `DSC01234.xmp` do podfolderu `Ciemnia/`.
 - JPEG zostaje w folderze głównym.

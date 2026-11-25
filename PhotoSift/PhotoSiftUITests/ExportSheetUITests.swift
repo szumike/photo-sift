@@ -98,7 +98,7 @@ final class ExportSheetUITests: XCTestCase {
         app.typeKey("e", modifierFlags: [])
         let slider = element(app, "edit.temperature")
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
-        slider.adjust(toNormalizedSliderPosition: 0.8)
+        slider.drag(toNormalizedPosition: 0.8)
 
         waitForLabel(app.buttons["toolbar.export"], "Eksportuj (1)")
     }
@@ -106,4 +106,13 @@ final class ExportSheetUITests: XCTestCase {
 
 private extension XCUIElement {
     var text: String { (value as? String) ?? label }
+
+    /// Drags the slider thumb (starting at its current centre position) to `position` of the track, like a user.
+    /// `adjust(toNormalizedSliderPosition:)` cannot be used: the custom slider exposes no AXOrientation.
+    func drag(toNormalizedPosition position: CGFloat) {
+        let start = coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = coordinate(withNormalizedOffset: CGVector(dx: position, dy: 0.5))
+        // `press(forDuration:)` sends no mouse events on macOS; a click that holds and then drags does.
+        start.click(forDuration: 0.3, thenDragTo: end)
+    }
 }

@@ -12,9 +12,10 @@ struct DarkroomSheet: View {
     private var target: DarkroomTarget { model.darkroomTarget }
     private var albumTitle: String { session.folder.lastPathComponent }
 
-    private var items: [PhotoItem] {
-        session.photos.filter { session.isMarked($0) && !session.isSent($0) && $0.rawURL != nil }
-    }
+    /// Set on the first confirm so a second Enter cannot start another send or close the sheet early.
+    @State private var isConfirming = false
+
+    private var items: [PhotoItem] { session.darkroomPending }
 
     var body: some View {
         let items = items
@@ -96,6 +97,8 @@ struct DarkroomSheet: View {
 
     /// The sheet stays open (with a progress indicator) until the send finishes.
     private func confirm() {
+        guard !isConfirming else { return }
+        isConfirming = true
         let target = target
         Task {
             await session.sendToDarkroom(target: target)

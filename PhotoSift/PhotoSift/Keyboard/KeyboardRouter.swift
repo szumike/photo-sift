@@ -18,7 +18,8 @@ final class KeyboardRouter {
             case 125: self = .down
             case 126: self = .up
             case 51, 117: self = .delete
-            case 36, 76: self = .enter
+            // Return, keypad Enter, and the legacy Enter key (52) that XCUITest synthesizes for `.enter`.
+            case 36, 52, 76: self = .enter
             case 53: self = .escape
             default:
                 if event.characters == "?" {

@@ -108,6 +108,18 @@ Oczekiwany stan: 8 plików, 4 pary z A7 III. Kolejność według daty wykonania:
 - Oczekiwane: kolejny eksport z Photo Sift nie dotyka tego pliku.
 - Dowód: potwierdzenie użytkownika.
 
+### 7. [MANUAL] Do Ciemni → Zdjęcia (wykonuje użytkownik)
+
+- Na świeżej kopii folderu ustaw w Ustawieniach (⌘,) cel „Zdjęcia”. Oznacz C dwa zdjęcia i kliknij „Do Ciemni”.
+- Oczekiwane:
+  - pierwsze wysłanie pokazuje monit o dostęp do Zdjęć,
+  - w Zdjęciach powstaje album o nazwie folderu z samymi plikami ARW,
+  - pliki w folderze sesji są bez zmian, poza XMP z `photosift:photosAssetID`.
+- Oznacz trzecie zdjęcie i wyślij. Oczekiwane: trafia do tego samego albumu, bez duplikatów.
+- Usuń jedno zdjęcie w Zdjęciach, naciśnij na nim C w Photo Sift i wyślij. Oczekiwane: zostaje dodane ponownie.
+- Odbierz dostęp (Ustawienia systemowe → Prywatność → Zdjęcia) i wyślij. Oczekiwane: komunikat „Brak dostępu do Zdjęć”, nic się nie zmienia.
+- Dowód: potwierdzenie użytkownika.
+
 ## Pass criteria
 
 Każdy scenariusz przechodzi z dowodami. Raport zawiera wynik każdego scenariusza (pass/fail) z dowodami, a na końcu listę blokerów. Czysty przebieg jest stwierdzony wprost.
