@@ -84,7 +84,7 @@ Usunięcie natychmiast przenosi do Kosza cały komplet: JPEG, ARW i XMP. Nie dot
 | Balans bieli: temperatura i tint | MVP |
 | Kopiowanie balansu bieli na zaznaczone zdjęcia | MVP |
 | Ekspozycja | MVP |
-| Światła i Cienie (highlights / shadows) | eksperyment (gałąź `experiment/exposure-fusion`): fuzja syntetycznych ekspozycji (Mertens), suwaki widoczne |
+| Światła i Cienie (highlights / shadows) | eksperyment (gałąź `experiment/exposure-fusion`), suwaki widoczne. Notatki i następne kroki: [highlights-shadows.md](highlights-shadows.md) |
 
 - Edycje to parametry zapisane w pliku XMP. Oryginalny JPEG nigdy nie jest zmieniany.
 - Edycje zostają po eksporcie, więc każdą można później zmienić i wyeksportować ponownie.
