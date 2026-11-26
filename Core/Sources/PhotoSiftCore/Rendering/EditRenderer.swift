@@ -39,6 +39,18 @@ public enum EditRenderer {
         /// Approximate short side (pixels) of the coarsest pyramid level.
         public static let coarsestSide = 24.0
 
+        /// Extra local contrast in recovered highlights at -100 (0.4 = 40% on top of the original's detail).
+        public static let highlightDetailBoost = 0.4
+        /// Band amplitude (gamma scale, 0...1) above which highlight detail is no longer amplified (an edge, not texture).
+        public static let detailEdge = 0.04
+
+        /// Gain of the highlights exposure's fine Laplacian bands. `gain^(-1/2.2)` undoes the flattening of detail
+        /// a darker exposure gets on the gamma scale; recovery (negative values) adds `highlightDetailBoost`.
+        public static func highlightDetailGain(_ highlights: Double) -> Double {
+            let compensation = pow(highlightGain(highlights), -1 / 2.2)
+            return compensation * (1 + max(-highlights, 0) / 100 * highlightDetailBoost)
+        }
+
         public static func shadowGain(_ shadows: Double) -> Double { pow(2, shadows / 100 * shadowEV) }
         public static func highlightGain(_ highlights: Double) -> Double { pow(2, highlights / 100 * highlightEV) }
     }

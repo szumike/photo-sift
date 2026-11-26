@@ -40,11 +40,18 @@ enum ExposureFusion {
         """)
 
     /// One pyramid level: the weighted sum of the exposures' Laplacian bands (`g - u`) plus the upsampled,
-    /// already collapsed coarser levels `r`. On the coarsest level `u` and `r` are black.
+    /// already collapsed coarser levels `r`. On the coarsest level `u` and `r` are black. `highlightDetail` scales the
+    /// highlights exposure's band: a darker exposure has flatter detail on the gamma scale, which made recovered
+    /// highlights look grey and flat, so fine levels restore (and for recovery, boost) it. Like the local Laplacian
+    /// filter's detail remapping, only small differences are amplified: the gain fades out for band values well above
+    /// `edge`, so strong edges such as a horizon get no bright outline.
     private static let blend = makeKernel("""
         kernel vec4 fusionBlend(__sample g0, __sample u0, __sample g1, __sample u1, __sample g2, __sample u2,
-                                __sample w, __sample r) {
-            vec3 band = w.r * (g0.rgb - u0.rgb) + w.g * (g1.rgb - u1.rgb) + w.b * (g2.rgb - u2.rgb);
+                                __sample w, __sample r, float highlightDetail, float edge) {
+            vec3 h = g2.rgb - u2.rgb;
+            float m = dot(h, vec3(0.2126, 0.7152, 0.0722));
+            float gain = 1.0 + (highlightDetail - 1.0) * exp(-(m * m) / (2.0 * edge * edge));
+            vec3 band = w.r * (g0.rgb - u0.rgb) + w.g * (g1.rgb - u1.rgb) + w.b * h * gain;
             return vec4(band + r.rgb, 1.0);
         }
         """)
@@ -87,6 +94,8 @@ enum ExposureFusion {
         let weightPyramid = gaussianPyramid(weightImage, levels: levels)
 
         let black = CIImage.black
+        let fineLevels = max(1, levels / 2)
+        let highlightDetail = Constants.highlightDetailGain(highlights)
         var collapsed: CIImage?
         for level in stride(from: levels, through: 0, by: -1) {
             let levelExtent = weightPyramid[level].extent
@@ -98,6 +107,8 @@ enum ExposureFusion {
             }
             arguments.append(weightPyramid[level])
             arguments.append(collapsed.map { upsample($0, to: levelExtent) } ?? black)
+            arguments.append(level < fineLevels && !isCoarsest ? highlightDetail : 1.0)
+            arguments.append(Constants.detailEdge)
             guard let result = blend.apply(extent: levelExtent, arguments: arguments) else { return image }
             collapsed = isCoarsest || level == 0 ? result : result.insertingIntermediate(cache: false)
         }
