@@ -66,6 +66,11 @@ final class KeyboardRouter {
             return true
         }
         if model.sheet != nil { return false }
+        // keyCode 3 is F; with ⌃ the characters are a control code, so match the key, not the text.
+        if modifiers == [.command, .control] && event.keyCode == 3 {
+            window.toggleFullScreen(nil)
+            return true
+        }
         if modifiers == .command && key == .character("o") {
             model.chooseFolder()
             return true
@@ -76,7 +81,12 @@ final class KeyboardRouter {
         }
         guard let session = model.session else { return false }
         guard model.screen == .browse else { return false }
-        if event.isARepeat && modifiers.isEmpty && [.character("z"), .character("m"), .character("b"), .character("c"), .delete].contains(key) { return true }
+        if event.isARepeat && modifiers.isEmpty && [.character("z"), .character("m"), .character("b"), .character("c"), .character("f"), .delete].contains(key) { return true }
+        if model.viewState.isPresenting { return handlePresentation(key, modifiers, session, model) }
+        if modifiers.isEmpty && key == .character("f") {
+            model.startPresentation(in: window)
+            return true
+        }
         return session.viewMode == .grid
             ? handleGrid(key, modifiers, session, model)
             : handleSingle(key, modifiers, session, model)
@@ -102,6 +112,10 @@ final class KeyboardRouter {
         case ([], .character("g")): session.toggleView()
         case ([], .character("z")):
             if canZoom(session) && session.currentID != nil { viewState.isZoomHeld = true }
+        // While zoom is held (Z or mouse): = / + one level closer, - one level back.
+        case ([], .character("=")), ([.shift], .character("=")), ([.shift], .character("+")), ([], .character("-")):
+            guard viewState.isZoomHeld else { return false }
+            model.stepZoom(by: key == .character("-") ? -1 : 1)
         case ([], .character("m")):
             if session.currentID != nil { viewState.isBeforeHeld = true }
         case ([], .character("b")):
@@ -112,6 +126,17 @@ final class KeyboardRouter {
             guard session.mode == .edit, session.tool == .crop else { return false }
             session.exitEdit()
         default: return handleShared(key, modifiers, session)
+        }
+        return true
+    }
+
+    /// F mode: browsing and decisions as in the single view; editing and the grid are off.
+    private func handlePresentation(_ key: Key, _ modifiers: NSEvent.ModifierFlags, _ session: Session, _ model: AppModel) -> Bool {
+        switch (modifiers, key) {
+        case ([], .character("f")), ([], .escape): model.endPresentation()
+        case ([], .character("e")), ([], .character("r")), ([], .character("d")), ([], .character("g")), ([], .enter): break
+        case ([.command], .character("a")), ([.command, .shift], .character("r")): break
+        default: return handleSingle(key, modifiers, session, model)
         }
         return true
     }

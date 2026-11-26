@@ -14,6 +14,8 @@ final class ViewState {
     var isRawHeld = false
     /// Zoom anchor, normalized 0...1 in the photo; written by the photo view on mouse move.
     var zoomPoint = CGPoint(x: 0.5, y: 0.5)
+    /// F mode: only the current photo fills the window (toolbar, filmstrip and info panel hidden).
+    var isPresenting = false
     /// Column count of the grid; written by `GridView`, read by `KeyboardRouter` for ↑ and ↓.
     var gridColumns = 6
     /// The message currently shown (from `Session.toast` or the app itself).

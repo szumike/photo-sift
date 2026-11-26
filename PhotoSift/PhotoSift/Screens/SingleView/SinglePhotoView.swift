@@ -18,15 +18,20 @@ struct SinglePhotoView: View {
                 .frame(width: 300)
         }
         .background { Color.clear.accessibilityIdentifier("screen.single") }
-        .task(id: session.currentID) { await prefetchNeighbours() }
+        .task(id: session.currentID) { await model.prefetchNeighbours(of: session) }
     }
+}
 
-    /// Warms the previews of the two photos on each side of the current one.
-    private func prefetchNeighbours() async {
-        let visible = session.visiblePhotos
-        guard let id = session.currentID, let index = visible.firstIndex(where: { $0.id == id }) else { return }
-        let range = max(0, index - 2)...min(visible.count - 1, index + 2)
-        let ids = range.filter { $0 != index }.map { visible[$0].id }
-        await model.loader.prefetch(ids: ids)
+/// F mode: only the current photo on black, full window. ← → move between photos (`KeyboardRouter`).
+/// Identifier: `screen.presentation`.
+struct PresentationView: View {
+    let session: Session
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        PhotoStage(session: session, albumStatuses: session.exportStatuses, isPresentation: true)
+            .ignoresSafeArea()
+            .background { Color.clear.accessibilityIdentifier("screen.presentation") }
+            .task(id: session.currentID) { await model.prefetchNeighbours(of: session) }
     }
 }

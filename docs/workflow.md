@@ -25,12 +25,14 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 ## Przeglądanie
 
 - **Metadane przy każdym zdjęciu:** model aparatu, obiektyw, ISO, przysłona (f), czas naświetlania, ogniskowa, data wykonania.
-- **Zoom** w miejscu kursora, do oceny ostrości: przytrzymanie Z albo przytrzymanie przycisku myszy na zdjęciu. Poziom powiększenia (100 / 150 / 200 / 300%, domyślnie 100%) wybiera się w oknie Ustawienia (⌘,); aplikacja go pamięta.
+- **Zoom** w miejscu kursora, do oceny ostrości: przytrzymanie Z albo przytrzymanie przycisku myszy na zdjęciu. Poziom powiększenia (100 / 150 / 200 / 300%, domyślnie 100%) wybiera się w oknie Ustawienia (⌘,); aplikacja go pamięta. W trakcie zoomu = przybliża, a - oddala o jeden stopień. Zmieniony poziom zostaje zapamiętany i widać go w Ustawieniach.
 - **Przed/po:** przytrzymanie M pokazuje zdjęcie bez zmian światła i koloru (temperatura, tint, ekspozycja). Kadr i prostowanie zostają widoczne.
 - **Podgląd RAW:** przytrzymanie B pokazuje prawdziwe wywołanie pliku ARW (bez edycji Photo Sift), do porównania z JPEG-iem. Zdjęcie bez RAW-a pokazuje „Brak RAW”.
 - **Pamiętanie pozycji:** po ponownym otwarciu folderu wracam do zdjęcia, na którym skończyłem.
 - **Filtry:** wszystkie, Ciemnia, edytowane.
 - **Siatka wszystkich zdjęć:** widok miniatur całego folderu. G przełącza siatkę ↔ pojedyncze zdjęcie, a Enter lub dwuklik otwiera zdjęcie z siatki. W siatce ⌫ i C działają na wszystkie zaznaczone zdjęcia.
+- **Tryb F (tylko zdjęcie):** F pokazuje samo bieżące zdjęcie na czarnym tle, bez paska narzędzi, paska miniatur i panelu bocznego, a okno przechodzi na pełny ekran. ← / → przechodzą do następnego / poprzedniego zdjęcia. Działają też ⌫, C, Z, M, B. Edycja (E, R) i siatka (G) są wyłączone. F lub Esc wraca do zwykłego widoku i wychodzi z pełnego ekranu, jeśli to tryb F go włączył. Włączony z siatki przechodzi do widoku pojedynczego.
+- **Pełny ekran okna:** ⌃⌘F przełącza okno na pełny ekran i z powrotem, bez zmiany widoku.
 - **Zaznaczanie wielu zdjęć tylko w siatce.** Pasek miniatur w widoku pojedynczym zawsze wskazuje jedno zdjęcie.
 - **Obsługa klawiaturą:** wszystkie decyzje bez myszy. Po usunięciu (⌫) aplikacja przechodzi do następnego zdjęcia. Oznaczenie Ciemni (C lub przycisk) zostaje na bieżącym zdjęciu.
 - **Koniec folderu:** → na ostatnim zdjęciu nic nie robi. Nie ma ekranu podsumowania.
@@ -41,10 +43,13 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 | --- | --- |
 | Następne / poprzednie zdjęcie | → / ← |
 | Siatka ↔ pojedyncze zdjęcie | G |
+| Tylko zdjęcie, pełny ekran (tryb F) | F (wyjście: F / Esc) |
+| Pełny ekran okna | ⌃⌘F |
 | Otwórz zdjęcie z siatki | Enter / dwuklik |
 | Usuń | ⌫ |
 | Ciemnia (przełącz) | C |
 | Zoom (poziom z Ustawień) | przytrzymaj Z |
+| Przy zoomie: przybliż / oddal o stopień | = / - |
 | Przed/po | przytrzymaj M |
 | Podgląd RAW | przytrzymaj B |
 | Edycja: światło i kolor | E |

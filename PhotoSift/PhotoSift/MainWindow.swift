@@ -44,6 +44,9 @@ final class AppModel {
     @ObservationIgnored private let keyboard = KeyboardRouter()
     @ObservationIgnored private var didStart = false
     @ObservationIgnored private var terminationObserver: (any NSObjectProtocol)?
+    @ObservationIgnored private var fullScreenExitObserver: (any NSObjectProtocol)?
+    /// The window F mode put into macOS full screen; F mode takes it out of full screen again on exit.
+    @ObservationIgnored private weak var presentationFullScreenWindow: NSWindow?
 
     /// `defaults` is where recents and resume positions are kept; UI tests pass a throwaway suite.
     init(defaults: UserDefaults = .standard) {
@@ -59,6 +62,24 @@ final class AppModel {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.session?.flushPendingSaves() }
         }
+        fullScreenExitObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didExitFullScreenNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            let window = notification.object as? NSWindow
+            MainActor.assumeIsolated {
+                // Leaving full screen another way (⌃⌘F, green button) also ends F mode it started.
+                guard let self, let window, window === self.presentationFullScreenWindow else { return }
+                self.presentationFullScreenWindow = nil
+                self.viewState.isPresenting = false
+            }
+        }
+    }
+
+    /// Moves the zoom level one step up (+1) or down (-1) in `zoomLevels`, clamped; the new level is persisted.
+    func stepZoom(by offset: Int) {
+        let levels = Self.zoomLevels
+        let index = levels.firstIndex(of: zoomLevel) ?? 0
+        zoomLevel = levels[min(max(index + offset, 0), levels.count - 1)]
     }
 
     /// "100%", "150%", ... for the active zoom level.
@@ -92,6 +113,7 @@ final class AppModel {
         isEmptyFolder = newSession.photos.isEmpty
         sheet = nil
         showShortcuts = false
+        endPresentation()
         viewState.resetHolds()
         recentFoldersStore.record(RecentFolder(
             name: folder.lastPathComponent, path: folder.path, photoCount: newSession.photos.count, date: Date()
@@ -122,6 +144,7 @@ final class AppModel {
         isEmptyFolder = false
         sheet = nil
         showShortcuts = false
+        endPresentation()
         viewState.resetHolds()
     }
 
@@ -129,6 +152,42 @@ final class AppModel {
     func recordPosition() {
         guard let session, let id = session.currentID else { return }
         resumeStore.setLastPhotoID(id, in: session.folder)
+    }
+
+    /// Warms the previews of the two photos on each side of the current one.
+    func prefetchNeighbours(of session: Session) async {
+        let visible = session.visiblePhotos
+        guard let id = session.currentID, let index = visible.firstIndex(where: { $0.id == id }) else { return }
+        let range = max(0, index - 2)...min(visible.count - 1, index + 2)
+        let ids = range.filter { $0 != index }.map { visible[$0].id }
+        await loader.prefetch(ids: ids)
+    }
+
+    // MARK: F mode (photo only, full screen)
+
+    /// Shows only the current photo; puts `window` into macOS full screen unless it already is.
+    func startPresentation(in window: NSWindow?) {
+        guard let session, screen == .browse, session.currentID != nil, !viewState.isPresenting else { return }
+        if session.viewMode == .grid { session.toggleView() }
+        if session.mode == .edit { session.exitEdit() }
+        viewState.resetHolds()
+        viewState.isPresenting = true
+        if let window, !window.styleMask.contains(.fullScreen) {
+            presentationFullScreenWindow = window
+            window.toggleFullScreen(nil)
+        }
+        NSCursor.setHiddenUntilMouseMoves(true)
+    }
+
+    /// Back to the normal single view; leaves full screen only if F mode entered it.
+    func endPresentation() {
+        guard viewState.isPresenting else { return }
+        viewState.isPresenting = false
+        viewState.resetHolds()
+        if let window = presentationFullScreenWindow {
+            presentationFullScreenWindow = nil
+            if window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }
+        }
     }
 
     // MARK: Messages
@@ -171,6 +230,7 @@ final class AppModel {
         default: break
         }
         showShortcuts = false
+        endPresentation()
         viewState.resetHolds()
         sheet = newSheet
     }
@@ -184,10 +244,14 @@ struct MainWindow: View {
     var body: some View {
         @Bindable var model = model
         VStack(spacing: 0) {
-            MainToolbar()
-            content
+            if viewState.isPresenting, model.screen == .browse, let session = model.session {
+                PresentationView(session: session)
+            } else {
+                MainToolbar()
+                content
+            }
         }
-        .background(Palette.window)
+        .background(viewState.isPresenting ? Color.black : Palette.window)
         .foregroundStyle(.white.opacity(0.9))
         .overlay { if model.showShortcuts { ShortcutsOverlay() } }
         .overlay(alignment: .bottom) {

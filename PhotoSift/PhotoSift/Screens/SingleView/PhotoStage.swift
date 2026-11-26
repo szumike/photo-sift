@@ -8,6 +8,8 @@ import SwiftUI
 struct PhotoStage: View {
     let session: Session
     let albumStatuses: [String: ExportStatus]
+    /// F mode: black background, no rounded corners and no inset around the photo.
+    var isPresentation = false
     @Environment(AppModel.self) private var model
 
     private struct LoadedImage {
@@ -29,13 +31,14 @@ struct PhotoStage: View {
     @State private var cursor = CGPoint.zero
 
     private var viewState: ViewState { model.viewState }
+    private var inset: CGFloat { isPresentation ? 0 : 8 }
 
     var body: some View {
         ZStack {
-            Palette.stage
+            isPresentation ? Color.black : Palette.stage
             content
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: isPresentation ? 0 : 14))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("stage")
     }
@@ -85,7 +88,7 @@ struct PhotoStage: View {
                         Image(decorative: image.image, scale: 1)
                             .resizable()
                             .scaledToFit()
-                            .padding(8)
+                            .padding(inset)
                             .frame(width: geometry.size.width, height: geometry.size.height)
                     }
                 }
@@ -128,12 +131,12 @@ struct PhotoStage: View {
     /// The plain RAW decode, fitted like the preview, covering the photo (browse and edit mode alike).
     private func rawImage(_ item: PhotoItem) -> some View {
         ZStack {
-            Palette.stage
+            isPresentation ? Color.black : Palette.stage
             if let raw, raw.id == item.id {
                 Image(decorative: raw.image, scale: 1)
                     .resizable()
                     .scaledToFit()
-                    .padding(8)
+                    .padding(inset)
                     .accessibilityIdentifier("stage.rawImage")
             }
         }
@@ -169,7 +172,7 @@ struct PhotoStage: View {
     private func track(_ point: CGPoint, in size: CGSize) {
         cursor = point
         guard let image = fitted?.image else { return }
-        let rect = Self.fittedRect(of: CGSize(width: image.width, height: image.height), in: size, inset: 8)
+        let rect = Self.fittedRect(of: CGSize(width: image.width, height: image.height), in: size, inset: inset)
         guard rect.width > 0, rect.height > 0 else { return }
         viewState.zoomPoint = CGPoint(
             x: min(1, max(0, (point.x - rect.minX) / rect.width)),

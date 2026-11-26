@@ -22,6 +22,8 @@ struct ShortcutsOverlay: View {
         Group(title: "Nawigacja", items: [
             Shortcut(label: "Następne / poprzednie zdjęcie", keys: ["→", "←"]),
             Shortcut(label: "Siatka ↔ pojedyncze zdjęcie", keys: ["G"]),
+            Shortcut(label: "Tylko zdjęcie, pełny ekran (Esc wychodzi)", keys: ["F"]),
+            Shortcut(label: "Pełny ekran okna", keys: ["⌃⌘F"]),
             Shortcut(label: "Otwórz zdjęcie z siatki", keys: ["Enter", "dwuklik"]),
             Shortcut(label: "Filtry: Wszystkie / Ciemnia / Edytowane", keys: ["⌘1", "⌘2", "⌘3"]),
             Shortcut(label: "Otwórz folder", keys: ["⌘O"]),
@@ -33,6 +35,7 @@ struct ShortcutsOverlay: View {
         ]),
         Group(title: "Podgląd (przytrzymaj)", items: [
             Shortcut(label: "Zoom", keys: ["Z"]),
+            Shortcut(label: "Przy zoomie: przybliż / oddal o stopień", keys: ["=", "-"]),
             Shortcut(label: "Przed/po", keys: ["M"]),
             Shortcut(label: "Podgląd RAW", keys: ["B"]),
         ]),
