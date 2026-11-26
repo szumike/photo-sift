@@ -9,7 +9,7 @@ struct WhiteBalanceSection: View {
     let session: Session
 
     /// Ukryte na życzenie użytkownika, kod zostaje na przyszłość.
-    static let showsHighlightsShadows = false
+    static let showsHighlightsShadows = true
 
     var body: some View {
         let params = session.currentEditParams

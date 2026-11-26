@@ -23,18 +23,24 @@ public enum EditRenderer {
         }
     }
 
-    /// Slider (-100...100) to highlights/shadows mapping constants.
+    /// Slider (-100...100) to highlights/shadows mapping constants for `ExposureFusion`.
     public enum HighlightsShadows {
-        /// `CIHighlightShadowAdjust` radius as a fraction of the (cropped) image's long side. Radii are in
-        /// pixels, so scaling with the image keeps the screen-sized preview and the export the same.
-        public static let radiusFraction = 0.01
-        /// `CIToneCurve` midtone-ish points of the highlights +100 curve: the y offset at x = 0.5 and 0.75.
-        public static let brightenOffsetAtHalf = 0.03
-        public static let brightenOffsetAtThreeQuarters = 0.08
+        /// Exposure shift (EV) of the synthetic shadows exposure at a slider value of ±100.
+        public static let shadowEV = 3.0
+        /// Exposure shift (EV) of the synthetic highlights exposure at a slider value of ±100.
+        public static let highlightEV = 1.5
+        /// Weight of a synthetic exposure (against 1 for the original) at ±100, deep in its tonal range.
+        public static let maxWeight = 4.0
+        /// Perceptual luminance ranges: shadows fade out across `shadowMask`, highlights fade in across `highlightMask`.
+        public static let shadowMask = 0.0...0.6
+        public static let highlightMask = 0.45...1.0
+        /// Linear value above which a brightened exposure is soft-clipped instead of cut at white.
+        public static let softClipKnee = 0.8
+        /// Approximate short side (pixels) of the coarsest pyramid level.
+        public static let coarsestSide = 24.0
 
-        public static func shadowAmount(_ shadows: Double) -> Double { shadows / 100 }
-        /// Input of `CIHighlightShadowAdjust` for highlights in -100...0 (1 = untouched, 0 = full recovery).
-        public static func highlightAmount(_ highlights: Double) -> Double { 1 + highlights / 100 }
+        public static func shadowGain(_ shadows: Double) -> Double { pow(2, shadows / 100 * shadowEV) }
+        public static func highlightGain(_ highlights: Double) -> Double { pow(2, highlights / 100 * highlightEV) }
     }
 
     public enum RenderError: Error {
@@ -94,27 +100,7 @@ public enum EditRenderer {
 
     private static func adjustHighlightsShadows(_ input: CIImage, highlights: Double, shadows: Double) -> CIImage {
         guard highlights != 0 || shadows != 0 else { return input }
-        var image = input
-        if shadows != 0 || highlights < 0 {
-            let filter = CIFilter(name: "CIHighlightShadowAdjust")!
-            filter.setValue(image, forKey: kCIInputImageKey)
-            filter.setValue(HighlightsShadows.shadowAmount(shadows), forKey: "inputShadowAmount")
-            filter.setValue(HighlightsShadows.highlightAmount(min(highlights, 0)), forKey: "inputHighlightAmount")
-            filter.setValue(HighlightsShadows.radiusFraction * max(image.extent.width, image.extent.height), forKey: kCIInputRadiusKey)
-            image = filter.outputImage ?? image
-        }
-        if highlights > 0 {
-            let h = highlights / 100
-            let filter = CIFilter(name: "CIToneCurve")!
-            filter.setValue(image, forKey: kCIInputImageKey)
-            filter.setValue(CIVector(x: 0, y: 0), forKey: "inputPoint0")
-            filter.setValue(CIVector(x: 0.25, y: 0.25), forKey: "inputPoint1")
-            filter.setValue(CIVector(x: 0.5, y: 0.5 + HighlightsShadows.brightenOffsetAtHalf * h), forKey: "inputPoint2")
-            filter.setValue(CIVector(x: 0.75, y: 0.75 + HighlightsShadows.brightenOffsetAtThreeQuarters * h), forKey: "inputPoint3")
-            filter.setValue(CIVector(x: 1, y: 1), forKey: "inputPoint4")
-            image = filter.outputImage ?? image
-        }
-        return image
+        return ExposureFusion.apply(shadows: shadows, highlights: highlights, to: input)
     }
 
     /// Renders the edited JPEG at `url` to a bitmap.
