@@ -81,7 +81,7 @@ final class KeyboardRouter {
         }
         guard let session = model.session else { return false }
         guard model.screen == .browse else { return false }
-        if event.isARepeat && modifiers.isEmpty && [.character("z"), .character("m"), .character("b"), .character("c"), .character("f"), .delete].contains(key) { return true }
+        if event.isARepeat && modifiers.isEmpty && [.character("z"), .character("m"), .character("b"), .character("c"), .character("x"), .character("f"), .delete].contains(key) { return true }
         if model.viewState.isPresenting { return handlePresentation(key, modifiers, session, model) }
         if modifiers.isEmpty && key == .character("f") {
             model.startPresentation(in: window)
@@ -106,6 +106,7 @@ final class KeyboardRouter {
         case ([], .delete): session.delete()
         case ([.command, .shift], .character("r")): session.resetEdit()
         case ([], .character("c")): session.toggleDarkroom()
+        case ([], .character("x")): session.toggleDeletion()
         case ([], .character("e")): model.openTool(.color)
         case ([], .character("r")): model.openTool(.crop)
         case ([], .character("d")): if session.mode == .edit { session.exitEdit() }
@@ -150,6 +151,7 @@ final class KeyboardRouter {
         case ([], .enter): if let id = session.currentID { session.openInSingle(id) }
         case ([], .delete): session.delete()
         case ([], .character("c")): session.toggleDarkroom()
+        case ([], .character("x")): session.toggleDeletion()
         case ([], .character("g")): session.toggleView()
         case ([], .character("e")): model.openTool(.color)
         case ([], .character("r")): model.openTool(.crop)
@@ -170,6 +172,7 @@ final class KeyboardRouter {
         case ([.command], .character("1")): session.setFilter(.all)
         case ([.command], .character("2")): session.setFilter(.darkroom)
         case ([.command], .character("3")): session.setFilter(.edited)
+        case ([.command], .character("4")): session.setFilter(.deletion)
         default: return false
         }
         return true

@@ -74,6 +74,7 @@ struct GridView: View {
         case .all: break
         case .darkroom: text += " · filtr: Ciemnia"
         case .edited: text += " · filtr: Edytowane"
+        case .deletion: text += " · filtr: Do usunięcia"
         }
         return text
     }

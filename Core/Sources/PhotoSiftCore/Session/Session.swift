@@ -89,8 +89,9 @@ public final class Session {
     public var visiblePhotos: [PhotoItem] {
         switch filter {
         case .all: photos
-        case .darkroom: photos.filter { isMarked($0) || isSent($0) }
+        case .darkroom: photos.filter(showsDarkroom)
         case .edited: photos.filter { states[$0.id]?.edit != nil }
+        case .deletion: photos.filter(isMarkedForDeletion)
         }
     }
 
@@ -113,6 +114,16 @@ public final class Session {
     public func state(of id: String) -> SidecarState { states[id] ?? SidecarState() }
     public func isMarked(_ item: PhotoItem) -> Bool { states[item.id]?.markedForDarkroom ?? false }
     public func isEdited(_ item: PhotoItem) -> Bool { states[item.id]?.edit != nil }
+    /// Marked with X: moved to the Trash at the start of the next export.
+    public func isMarkedForDeletion(_ item: PhotoItem) -> Bool { states[item.id]?.markedForDeletion ?? false }
+    /// Darkroom as the photo's decision: marked or sent, and not taken over by "do usunięcia".
+    public func showsDarkroom(_ item: PhotoItem) -> Bool {
+        (isMarked(item) || isSent(item)) && !isMarkedForDeletion(item)
+    }
+    /// Photos the next export moves to the Trash.
+    public var deletionCount: Int { photos.filter(isMarkedForDeletion).count }
+    /// The export has something to do: files to write or photos to trash.
+    public var canExport: Bool { exportCount > 0 || deletionCount > 0 }
 
     /// The RAW was imported into Apple Photos (recorded in the XMP).
     public func isInPhotos(_ item: PhotoItem) -> Bool { states[item.id]?.photosAssetID != nil }
@@ -255,36 +266,8 @@ public final class Session {
         endEditGesture()
         let ids = targetIDs
         guard !ids.isEmpty else { return }
-        let visibleBefore = visiblePhotos.map(\.id)
-        let firstIndex = visibleBefore.firstIndex { ids.contains($0) } ?? 0
-
         flushPendingSaves()
-        var deleted: [String] = []
-        var trashedTypes: [String] = []
-        var failed = 0
-        for id in ids {
-            guard let item = photo(id: id) else { continue }
-            let result = PhotoTrasher().trash(item)
-            for kind in ["JPEG", "ARW", "XMP"] where result.trashed.contains(where: { Self.fileType($0) == kind }) {
-                if !trashedTypes.contains(kind) { trashedTypes.append(kind) }
-            }
-            if result.isComplete {
-                deleted.append(id)
-            } else {
-                failed += 1
-                forget(result.trashed, of: id)
-            }
-        }
-        if !deleted.isEmpty {
-            photos.removeAll { deleted.contains($0.id) }
-            for id in deleted {
-                states[id] = nil
-                histories[id] = nil
-            }
-            deletedCount += deleted.count
-            selection.subtract(deleted)
-            advanceAfterRemoval(firstIndex: firstIndex)
-        }
+        let (deleted, trashedTypes, failed) = trash(ids)
         refreshExportCount()
 
         if failed > 0 {
@@ -299,6 +282,33 @@ public final class Session {
         }
     }
 
+    /// Toggles "do usunięcia" (X) on the current photo or the grid selection. Never moves to another photo.
+    /// Marking clears a not yet sent Darkroom mark, so a photo has one decision at a time.
+    public func toggleDeletion() {
+        let items = targetIDs.compactMap(photo(id:))
+        guard !items.isEmpty else { return }
+        let marking = items.contains { !isMarkedForDeletion($0) }
+        var changed: [PhotoItem] = []
+        for item in items where isMarkedForDeletion(item) != marking {
+            var state = self.state(of: item.id)
+            state.markedForDeletion = marking
+            if marking && !isSent(item) { state.markedForDarkroom = false }
+            guard persistNow(state, for: item) else {
+                toast = Toast("Nie udało się zapisać pliku XMP", subtext: item.sidecarURL.lastPathComponent)
+                continue
+            }
+            states[item.id] = state
+            changed.append(item)
+        }
+        refreshExportCount()
+
+        guard !changed.isEmpty else { return }
+        let label = items.count == 1 ? changed[0].id : PolishPlural.photos(changed.count)
+        toast = marking
+            ? Toast("\(label) → do usunięcia", subtext: "Trafi do Kosza przy eksporcie")
+            : Toast("\(label): bez usuwania")
+    }
+
     /// Toggles Darkroom on the current photo or the grid selection.
     /// Never moves to another photo.
     public func toggleDarkroom() {
@@ -309,10 +319,16 @@ public final class Session {
         let skipped = items.count - eligible.count
 
         guard !eligible.isEmpty else {
+            // C still takes back "do usunięcia" on photos that cannot be marked for Darkroom.
+            let unmarked = clearDeletionMarks(of: items)
             if let blocked = items.first {
-                toast = isSent(blocked) ? alreadySentToast(blocked) : Toast(Self.noRawText)
+                let reason = isSent(blocked) ? alreadySentToast(blocked) : Toast(Self.noRawText)
+                toast = unmarked > 0 ? Toast(reason.text, subtext: "Zdjęte oznaczenie do usunięcia.") : reason
             }
             return
+        }
+        if eligible.contains(where: { !isMarked($0) }) {
+            _ = clearDeletionMarks(of: items.filter { !eligible.contains($0) })
         }
 
         let marking = eligible.contains { !isMarked($0) }
@@ -320,6 +336,7 @@ public final class Session {
         for item in eligible where isMarked(item) != marking {
             var state = self.state(of: item.id)
             state.markedForDarkroom = marking
+            if marking { state.markedForDeletion = false }
             guard persistNow(state, for: item) else {
                 toast = Toast("Nie udało się zapisać pliku XMP", subtext: item.sidecarURL.lastPathComponent)
                 continue
@@ -585,6 +602,10 @@ public final class Session {
         guard !isExporting else { return ExportSummary() }
         flushPendingSaves()
         isExporting = true
+        // Photos marked for deletion go to the Trash first; they are never part of the files to write.
+        let marked = plan.deletionItems.map(\.id).filter { id in photo(id: id).map(isMarkedForDeletion) ?? false }
+        let (trashedIDs, _, _) = trash(marked, keepingCurrent: true)
+        let trashFailed = marked.filter { !trashedIDs.contains($0) }
         let exporter = exporter
         let task = Task.detached { [weak self] in
             await exporter.run(plan: plan) { progress in
@@ -594,22 +615,33 @@ public final class Session {
             }
         }
         exportTask = task
-        let summary = await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        var summary = await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        summary.trashed = trashedIDs.count
+        summary.trashFailed = trashFailed
         exportTask = nil
         isExporting = false
         exportProgress = nil
         refreshExportCount()
 
         let written = summary.copied + summary.rendered
-        if summary.wasCancelled {
-            toast = Toast("Eksport zatrzymany", subtext: "Zapisano \(written) z \(plan.pendingCount).")
+        let trashNote = summary.trashed > 0 ? " Do Kosza: \(PolishPlural.photos(summary.trashed))." : ""
+        if !summary.trashFailed.isEmpty {
+            toast = Toast(
+                "Nie przeniesiono do Kosza: \(summary.trashFailed.joined(separator: ", "))",
+                subtext: "Sprawdź uprawnienia do plików. Zapisano \(written) z \(plan.pendingCount) w Album/."
+            )
+        } else if summary.wasCancelled {
+            toast = Toast("Eksport zatrzymany", subtext: "Zapisano \(written) z \(plan.pendingCount).\(trashNote)")
         } else if !summary.failed.isEmpty {
             toast = Toast(
                 "Wyeksportowano \(PolishPlural.photos(written)) do Album/",
-                subtext: "Błędy: \(summary.failed.joined(separator: ", "))."
+                subtext: "Błędy: \(summary.failed.joined(separator: ", ")).\(trashNote)"
             )
         } else {
-            toast = Toast("Wyeksportowano \(PolishPlural.photos(written)) do Album/")
+            toast = Toast(
+                "Wyeksportowano \(PolishPlural.photos(written)) do Album/",
+                subtext: trashNote.isEmpty ? nil : String(trashNote.dropFirst())
+            )
         }
         return summary
     }
@@ -625,6 +657,56 @@ public final class Session {
             return Toast("RAW jest już w Zdjęciach", subtext: "Album „\(folder.lastPathComponent)”.")
         }
         return Toast("RAW jest już w Ciemnia/", subtext: "Cofniesz to, przenosząc \(item.id).ARW w Finderze.")
+    }
+
+    /// Takes "do usunięcia" off `items`; returns how many changed.
+    private func clearDeletionMarks(of items: [PhotoItem]) -> Int {
+        var count = 0
+        for item in items where isMarkedForDeletion(item) {
+            var state = self.state(of: item.id)
+            state.markedForDeletion = false
+            guard persistNow(state, for: item) else { continue }
+            states[item.id] = state
+            count += 1
+        }
+        if count > 0 { refreshExportCount() }
+        return count
+    }
+
+    /// Moves every photo's JPEG, ARW and XMP to the Trash and drops the fully trashed ones from the session.
+    /// The photo that took the first removed one's place becomes current, unless `keepingCurrent` and the current
+    /// photo survived. Returns the removed ids, the trashed file kinds and the number of photos that failed.
+    private func trash(_ ids: [String], keepingCurrent: Bool = false) -> (deleted: [String], types: [String], failed: Int) {
+        guard !ids.isEmpty else { return ([], [], 0) }
+        let firstIndex = visiblePhotos.map(\.id).firstIndex { ids.contains($0) } ?? 0
+        var deleted: [String] = []
+        var trashedTypes: [String] = []
+        var failed = 0
+        for id in ids {
+            guard let item = photo(id: id) else { continue }
+            let result = PhotoTrasher().trash(item)
+            for kind in ["JPEG", "ARW", "XMP"] where result.trashed.contains(where: { Self.fileType($0) == kind }) {
+                if !trashedTypes.contains(kind) { trashedTypes.append(kind) }
+            }
+            if result.isComplete {
+                deleted.append(id)
+            } else {
+                failed += 1
+                forget(result.trashed, of: id)
+            }
+        }
+        if !deleted.isEmpty {
+            let currentRemoved = currentID.map(deleted.contains) ?? false
+            photos.removeAll { deleted.contains($0.id) }
+            for id in deleted {
+                states[id] = nil
+                histories[id] = nil
+            }
+            deletedCount += deleted.count
+            selection.subtract(deleted)
+            if currentRemoved || !keepingCurrent { advanceAfterRemoval(firstIndex: firstIndex) }
+        }
+        return (deleted, trashedTypes, failed)
     }
 
     private func trashSubtext(_ types: [String]) -> String {

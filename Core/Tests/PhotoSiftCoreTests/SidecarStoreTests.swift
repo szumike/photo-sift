@@ -60,6 +60,13 @@ struct SidecarStoreTests {
         #expect(try store.read(at: url) == state)
     }
 
+    @Test func roundTripsDeletionMark() throws {
+        let url = try makeURL()
+        let state = SidecarState(edit: edit, markedForDeletion: true)
+        try store.write(state, to: url)
+        #expect(try store.read(at: url) == state)
+    }
+
     @Test func readsMissingFileAsEmptyState() throws {
         #expect(try store.read(at: makeURL()) == SidecarState())
     }

@@ -226,7 +226,7 @@ final class AppModel {
         guard let session else { return }
         switch newSheet {
         case .darkroom where session.darkroomCount == 0: return
-        case .export where session.exportCount == 0: return
+        case .export where !session.canExport: return
         default: break
         }
         showShortcuts = false

@@ -74,7 +74,8 @@ struct GridCell: View {
 
     private var title: String {
         var parts = [item.id]
-        if session.isMarked(item) || session.isSent(item) { parts.append("Ciemnia") }
+        if session.isMarkedForDeletion(item) { parts.append("do usunięcia") }
+        if session.showsDarkroom(item) { parts.append("Ciemnia") }
         if session.isEdited(item) { parts.append("edytowane") }
         if let albumStatus { parts.append(albumStatus.label) }
         return parts.joined(separator: " · ")

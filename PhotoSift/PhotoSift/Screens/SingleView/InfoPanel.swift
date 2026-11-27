@@ -13,6 +13,7 @@ extension ExportStatus {
         case .current: "Aktualne"
         case .changed: "Zmienione"
         case .notExported: "Nie wyeksportowane"
+        case .skipped(.deletion): "Do usunięcia przy eksporcie"
         case .skipped: "Pomijane"
         case .conflict: "Inny plik o tej nazwie"
         }
@@ -21,7 +22,7 @@ extension ExportStatus {
 
 /// The side panel: file, metadata and the "Stan" section; in edit mode `EditPanel` replaces "Stan".
 /// Identifiers: `info.fileName`, `info.type`, `info.camera`, `info.lens`, `info.iso`, `info.aperture`,
-/// `info.exposureTime`, `info.focalLength`, `info.date`, `info.state.darkroom|edit|album`, `info.rawOnlyNote`.
+/// `info.exposureTime`, `info.focalLength`, `info.date`, `info.state.deletion|darkroom|edit|album`, `info.rawOnlyNote`.
 struct InfoPanel: View {
     let session: Session
     let albumStatus: ExportStatus?
@@ -113,6 +114,9 @@ struct InfoPanel: View {
             Text("Stan")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Palette.secondaryText)
+            if session.isMarkedForDeletion(item) {
+                stateRow("xmark.bin.fill", "Usuwanie", "Przy eksporcie", color: Palette.red, id: "info.state.deletion")
+            }
             stateRow(
                 "moon.fill", "Ciemnia",
                 marked ? (session.isSent(item) ? (session.isInPhotos(item) ? "RAW w Zdjęciach" : "RAW w Ciemnia/") : "Oznaczone") : "Nie",

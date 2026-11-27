@@ -6,11 +6,11 @@ Photo Sift służy do szybkiej selekcji zdjęć z Sony A7 III (JPEG + ARW) na Ma
 
 1. Wrzucam do folderu wszystkie zdjęcia z sesji, JPEG i ARW razem.
 2. Otwieram folder w Photo Sift. Naraz oglądam tylko jeden folder.
-3. Usuwam słabe zdjęcia: duplikaty, nieostre.
+3. Usuwam słabe zdjęcia: duplikaty, nieostre. Pewne od razu (⌫), wątpliwe oznaczam **do usunięcia** (X) i decyduję do eksportu.
 4. Zdjęcia do lekkiej obróbki poprawiam: kadr, prostowanie, balans bieli.
 5. Zdjęcia do mocnej obróbki oznaczam jako **Ciemnia**.
 6. Klikam **Do Ciemni**: oznaczone RAW-y trafiają do `Ciemnia/`.
-7. Klikam **Eksportuj**: pozostawione zdjęcia trafiają do `Album/`.
+7. Klikam **Eksportuj**: oznaczone do usunięcia trafiają do Kosza, a pozostawione zdjęcia do `Album/`.
 8. Na folderze `Ciemnia/` uruchamiam Lightrooma i eksportuję z niego gotowe zdjęcia do `Album/`, z oryginalnymi nazwami plików.
 
 ## Para JPEG + ARW to jedno zdjęcie
@@ -19,7 +19,7 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 
 - Podgląd zawsze pochodzi z JPEG-a. RAW jest dekodowany tylko na czas przytrzymania B (podgląd RAW).
 - Plik ARW bez pary JPEG pokazuję z podglądu osadzonego w pliku RAW. Takiego zdjęcia nie da się edytować i nie trafia do eksportu. Można je usunąć albo wysłać do Ciemni.
-- Jedyne decyzje o zdjęciu to **usuń** i **Ciemnia**. Nie ma ocen, gwiazdek ani etykiet.
+- Jedyne decyzje o zdjęciu to **usuń** (od razu lub przy eksporcie) i **Ciemnia**. Nie ma ocen, gwiazdek ani etykiet.
 - ARW-y zdjęć zostawionych jako JPEG zostają w folderze sesji. Aplikacja nic z nimi nie robi.
 
 ## Przeglądanie
@@ -29,12 +29,12 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 - **Przed/po:** przytrzymanie M pokazuje zdjęcie bez zmian światła i koloru (temperatura, tint, ekspozycja). Kadr i prostowanie zostają widoczne.
 - **Podgląd RAW:** przytrzymanie B pokazuje prawdziwe wywołanie pliku ARW (bez edycji Photo Sift), do porównania z JPEG-iem. Zdjęcie bez RAW-a pokazuje „Brak RAW”.
 - **Pamiętanie pozycji:** po ponownym otwarciu folderu wracam do zdjęcia, na którym skończyłem.
-- **Filtry:** wszystkie, Ciemnia, edytowane.
-- **Siatka wszystkich zdjęć:** widok miniatur całego folderu. G przełącza siatkę ↔ pojedyncze zdjęcie, a Enter lub dwuklik otwiera zdjęcie z siatki. W siatce ⌫ i C działają na wszystkie zaznaczone zdjęcia.
-- **Tryb F (tylko zdjęcie):** F pokazuje samo bieżące zdjęcie na czarnym tle, bez paska narzędzi, paska miniatur i panelu bocznego, a okno przechodzi na pełny ekran. ← / → przechodzą do następnego / poprzedniego zdjęcia. Działają też ⌫, C, Z, M, B. Edycja (E, R) i siatka (G) są wyłączone. F lub Esc wraca do zwykłego widoku i wychodzi z pełnego ekranu, jeśli to tryb F go włączył. Włączony z siatki przechodzi do widoku pojedynczego.
+- **Filtry:** wszystkie, Ciemnia, edytowane, do usunięcia.
+- **Siatka wszystkich zdjęć:** widok miniatur całego folderu. G przełącza siatkę ↔ pojedyncze zdjęcie, a Enter lub dwuklik otwiera zdjęcie z siatki. W siatce ⌫, X i C działają na wszystkie zaznaczone zdjęcia.
+- **Tryb F (tylko zdjęcie):** F pokazuje samo bieżące zdjęcie na czarnym tle, bez paska narzędzi, paska miniatur i panelu bocznego, a okno przechodzi na pełny ekran. ← / → przechodzą do następnego / poprzedniego zdjęcia. Działają też ⌫, X, C, Z, M, B. Edycja (E, R) i siatka (G) są wyłączone. F lub Esc wraca do zwykłego widoku i wychodzi z pełnego ekranu, jeśli to tryb F go włączył. Włączony z siatki przechodzi do widoku pojedynczego.
 - **Pełny ekran okna:** ⌃⌘F przełącza okno na pełny ekran i z powrotem, bez zmiany widoku.
 - **Zaznaczanie wielu zdjęć tylko w siatce.** Pasek miniatur w widoku pojedynczym zawsze wskazuje jedno zdjęcie.
-- **Obsługa klawiaturą:** wszystkie decyzje bez myszy. Po usunięciu (⌫) aplikacja przechodzi do następnego zdjęcia. Oznaczenie Ciemni (C lub przycisk) zostaje na bieżącym zdjęciu.
+- **Obsługa klawiaturą:** wszystkie decyzje bez myszy. Po usunięciu (⌫) aplikacja przechodzi do następnego zdjęcia. Oznaczenie do usunięcia (X) i Ciemni (C) zostaje na bieżącym zdjęciu.
 - **Koniec folderu:** → na ostatnim zdjęciu nic nie robi. Nie ma ekranu podsumowania.
 
 ## Skróty klawiszowe
@@ -46,7 +46,8 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 | Tylko zdjęcie, pełny ekran (tryb F) | F (wyjście: F / Esc) |
 | Pełny ekran okna | ⌃⌘F |
 | Otwórz zdjęcie z siatki | Enter / dwuklik |
-| Usuń | ⌫ |
+| Usuń od razu do Kosza | ⌫ |
+| Do usunięcia przy eksporcie (przełącz) | X |
 | Ciemnia (przełącz) | C |
 | Zoom (poziom z Ustawień) | przytrzymaj Z |
 | Przy zoomie: przybliż / oddal o stopień | = / - |
@@ -59,7 +60,7 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 | Resetuj edycję | ⇧⌘R |
 | Cofnij / ponów edycję | ⌘Z / ⇧⌘Z |
 | Wyjście z edycji / wyczyszczenie zaznaczenia | Esc |
-| Filtry: Wszystkie / Ciemnia / Edytowane | ⌘1 / ⌘2 / ⌘3 |
+| Filtry: Wszystkie / Ciemnia / Edytowane / Do usunięcia | ⌘1 / ⌘2 / ⌘3 / ⌘4 |
 | Zaznacz wszystkie (siatka) | ⌘A |
 | Poruszanie się po siatce | ← ↑ ↓ → |
 | Otwórz folder | ⌘O |
@@ -68,11 +69,20 @@ Pliki o tej samej nazwie bazowej (`DSC01234.JPG` i `DSC01234.ARW`) aplikacja pok
 
 Zmiana orientacji kadru nie ma skrótu, tylko przycisk.
 
-Przytrzymanie ⌫ lub C nie powtarza akcji: jedno naciśnięcie to jedna decyzja.
+Przytrzymanie ⌫, X lub C nie powtarza akcji: jedno naciśnięcie to jedna decyzja.
 
 ## Usuwanie działa od razu
 
 Usunięcie natychmiast przenosi do Kosza cały komplet: JPEG, ARW i XMP. Nie dotyka `Album/`. Nie ma okna potwierdzenia ani Cofnij w aplikacji. Pomyłkę naprawiam w Koszu Findera („Odłóż z powrotem”).
+
+## Do usunięcia (X): usuwanie przy eksporcie
+
+- X (lub przycisk **Do usunięcia**) przełącza oznaczenie na bieżącym zdjęciu albo zaznaczonych w siatce. Zdjęcie zostaje na miejscu, z czerwoną odznaką „Do usunięcia”. Ponowne X zdejmuje oznaczenie.
+- Oznaczenie jest zapisane w XMP, więc przetrwa zamknięcie folderu.
+- Zdjęcie ma jedną decyzję naraz: X zdejmuje oznaczenie Ciemni, a C zdejmuje oznaczenie do usunięcia. Dotyczy to też zdjęć już wysłanych do Ciemni i zdjęć bez RAW-a: X chowa ich odznakę Ciemni, a C zdejmuje oznaczenie do usunięcia nawet wtedy, gdy samej Ciemni nie da się włączyć.
+- Oznaczonych nie liczy się do eksportu. **Eksportuj** jest dostępne także wtedy, gdy są tylko zdjęcia do usunięcia.
+- Po kliknięciu „Eksportuj” w arkuszu najpierw cały komplet (JPEG, ARW, XMP) oznaczonych zdjęć trafia do Kosza, a potem zapisywany jest `Album/`. Zatrzymanie eksportu nie cofa usunięcia.
+- Kopia w `Album/` z wcześniejszego eksportu zostaje, jak przy ⌫.
 
 ## Lekka obróbka
 
@@ -137,6 +147,7 @@ Para JPEG + ARW ma wspólny plik `DSC01234.xmp`, a Lightroom czyta go jako plik 
 ## Wygląd
 
 - Przyciski i kafle bez obwódek: rozróżnia je tylko tło.
+- Przyciski decyzji na pasku (Usuń, Do usunięcia, Ciemnia, Edycja) to same ikony z podpowiedzią po najechaniu. Gdy okno jest wąskie, filtry pokazują ikony z licznikami zamiast nazw.
 - Suwaki bez dodatkowych linii czy znaczników pod spodem.
 - Dolny kafel panelu bocznego sięga do dołu okna, jak w prototypie.
 - Suwak ma fokus klawiatury: strzałki ↑/↓ zmieniają ekspozycję o 0,1 EV, a pozostałe suwaki o 5.

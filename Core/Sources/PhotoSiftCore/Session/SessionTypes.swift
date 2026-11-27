@@ -3,7 +3,7 @@ import Foundation
 public enum ViewMode: Sendable, Equatable { case single, grid }
 public enum InteractionMode: Sendable, Equatable { case browse, edit }
 public enum EditTool: Sendable, Equatable { case color, crop }
-public enum PhotoFilter: Sendable, Equatable { case all, darkroom, edited }
+public enum PhotoFilter: Sendable, Equatable { case all, darkroom, edited, deletion }
 
 public struct SelectionModifiers: OptionSet, Sendable {
     public let rawValue: Int

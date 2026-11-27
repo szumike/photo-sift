@@ -4,7 +4,8 @@ import SwiftUI
 
 /// "Eksportuj do Album/": confirm, progress and done phases. Esc/Enter work in the confirm and done phases;
 /// while exporting the sheet can only be stopped with "Zatrzymaj". Identifiers: `sheet.export`, `sheet.export.title`,
-/// `sheet.export.summary`, `sheet.export.new`, `sheet.export.updated`, `sheet.export.skipped`, `sheet.export.conflicts`,
+/// `sheet.export.summary`, `sheet.export.new`, `sheet.export.updated`, `sheet.export.skipped`, `sheet.export.trash`,
+/// `sheet.export.conflicts`,
 /// `sheet.export.note`, `sheet.export.cancel`, `sheet.export.confirm`, `sheet.export.progress.text`,
 /// `sheet.export.progress.bar`, `sheet.export.progress.file`, `sheet.export.stop`, `sheet.export.done.text`,
 /// `sheet.export.showInFinder`, `sheet.export.close`.
@@ -96,6 +97,13 @@ private struct ExportSheetContent: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.secondaryText)
                 .accessibilityIdentifier("sheet.export.skipped")
+            if !plan.deletionItems.isEmpty {
+                Text("\(PolishPlural.photos(plan.deletionItems.count)) do usunięcia trafi najpierw do Kosza (JPEG, ARW i XMP).")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("sheet.export.trash")
+            }
             if plan.conflictCount > 0 {
                 Text("\(plan.conflictCount) \(PolishPlural.form(plan.conflictCount, one: "zdjęcie", few: "zdjęcia", many: "zdjęć")) nie zostanie wyeksportowane: w Album/ jest już obcy plik o tej samej nazwie. Photo Sift go nie nadpisze.")
                     .font(.system(size: 12))
@@ -176,7 +184,9 @@ private struct ExportSheetContent: View {
     private var doneText: String {
         guard let summary else { return "" }
         let saved = summary.copied + summary.rendered
-        var text = "Zapisano \(saved) \(PolishPlural.form(saved, one: "zdjęcie", few: "zdjęcia", many: "zdjęć")) w Album/. Nic nie zostało usunięte."
+        var text = "Zapisano \(saved) \(PolishPlural.form(saved, one: "zdjęcie", few: "zdjęcia", many: "zdjęć")) w Album/. Z Album/ nic nie zostało usunięte."
+        if summary.trashed > 0 { text += " Do Kosza: \(PolishPlural.photos(summary.trashed))." }
+        if !summary.trashFailed.isEmpty { text += " Nie przeniesiono do Kosza: \(summary.trashFailed.joined(separator: ", "))." }
         if summary.wasCancelled { text += " Eksport został zatrzymany." }
         if !summary.failed.isEmpty { text += " Nie udało się zapisać: \(summary.failed.joined(separator: ", "))." }
         return text

@@ -2,8 +2,11 @@ import PhotoSiftCore
 import SwiftUI
 
 /// The top bar of the window. Identifiers: `toolbar.folderName`, `toolbar.previous`, `toolbar.position`,
-/// `toolbar.next`, `toolbar.view.single|grid`, `toolbar.filter.all|darkroom|edited`, `toolbar.delete`,
-/// `toolbar.darkroom`, `toolbar.edit`, `toolbar.shortcuts`, `toolbar.sendToDarkroom`, `toolbar.export`.
+/// `toolbar.next`, `toolbar.view.single|grid`, `toolbar.filter.all|darkroom|edited|deletion`, `toolbar.delete`,
+/// `toolbar.markDeletion`, `toolbar.darkroom`, `toolbar.edit`, `toolbar.shortcuts`, `toolbar.sendToDarkroom`,
+/// `toolbar.export`.
+///
+/// Decision buttons are icons with tooltips; filters drop their names for icons when the window is narrow.
 struct MainToolbar: View {
     @Environment(AppModel.self) private var model
 
@@ -94,23 +97,33 @@ struct MainToolbar: View {
 
     private func filters(_ session: Session) -> some View {
         let all = session.photos.count
-        let darkroom = session.photos.filter { session.isMarked($0) || session.isSent($0) }.count
+        let darkroom = session.photos.filter(session.showsDarkroom).count
         let edited = session.photos.filter { session.isEdited($0) }.count
-        return HStack(spacing: 0) {
-            filterButton("Wszystkie", count: all, filter: .all, shortcut: "⌘1", id: "all", session)
-            filterButton("Ciemnia", count: darkroom, filter: .darkroom, shortcut: "⌘2", id: "darkroom", session)
-            filterButton("Edytowane", count: edited, filter: .edited, shortcut: "⌘3", id: "edited", session)
+        let deletion = session.deletionCount
+        func row(compact: Bool) -> some View {
+            HStack(spacing: 0) {
+                filterButton("Wszystkie", icon: "photo.on.rectangle", compact: compact, count: all, filter: .all, shortcut: "⌘1", id: "all", session)
+                filterButton("Ciemnia", icon: "moon", compact: compact, count: darkroom, filter: .darkroom, shortcut: "⌘2", id: "darkroom", session)
+                filterButton("Edytowane", icon: "slider.horizontal.3", compact: compact, count: edited, filter: .edited, shortcut: "⌘3", id: "edited", session)
+                filterButton("Do usunięcia", icon: "xmark.bin", compact: compact, count: deletion, filter: .deletion, shortcut: "⌘4", id: "deletion", session)
+            }
+            .segmentContainer()
+            .fixedSize()
         }
-        .segmentContainer()
+        return ViewThatFits(in: .horizontal) {
+            row(compact: false)
+            row(compact: true)
+        }
         .disabled(session.photos.isEmpty)
     }
 
     private func filterButton(
-        _ label: String, count: Int, filter: PhotoFilter, shortcut: String, id: String, _ session: Session
+        _ label: String, icon: String, compact: Bool, count: Int, filter: PhotoFilter, shortcut: String, id: String,
+        _ session: Session
     ) -> some View {
         Button { session.setFilter(filter) } label: {
-            HStack(spacing: 6) {
-                Text(label)
+            HStack(spacing: compact ? 4 : 6) {
+                if compact { Image(systemName: icon) } else { Text(label) }
                 Text("\(count)").foregroundStyle(Palette.secondaryText).monospacedDigit()
             }
         }
@@ -123,22 +136,29 @@ struct MainToolbar: View {
     private func actions(_ session: Session) -> some View {
         let noCurrent = session.currentID == nil
         let marked = session.currentPhoto.map(session.isMarked) ?? false
-        return HStack(spacing: 10) {
-            Button { session.delete() } label: { Label("Usuń", systemImage: "trash") }
-                .buttonStyle(PillButtonStyle(kind: .destructive))
-                .labelStyle(CenteredLabelStyle())
+        let markedForDeletion = session.currentPhoto.map(session.isMarkedForDeletion) ?? false
+        return HStack(spacing: 6) {
+            Button { session.delete() } label: { Image(systemName: "trash") }
+                .buttonStyle(PillButtonStyle(kind: .destructive, iconOnly: true))
+                .accessibilityLabel("Usuń")
                 .disabled(noCurrent)
                 .help("Usuń do Kosza (⌫)")
                 .accessibilityIdentifier("toolbar.delete")
-            Button { session.toggleDarkroom() } label: { Label("Ciemnia", systemImage: "moon") }
-                .buttonStyle(PillButtonStyle(kind: .toggle(isOn: marked, tint: Palette.amber)))
-                .labelStyle(CenteredLabelStyle())
+            Button { session.toggleDeletion() } label: { Image(systemName: "xmark.bin") }
+                .buttonStyle(PillButtonStyle(kind: .toggle(isOn: markedForDeletion, tint: Palette.red), iconOnly: true))
+                .accessibilityLabel("Do usunięcia")
+                .disabled(noCurrent)
+                .help("Oznacz do usunięcia przy eksporcie (X)")
+                .accessibilityIdentifier("toolbar.markDeletion")
+            Button { session.toggleDarkroom() } label: { Image(systemName: "moon") }
+                .buttonStyle(PillButtonStyle(kind: .toggle(isOn: marked, tint: Palette.amber), iconOnly: true))
+                .accessibilityLabel("Ciemnia")
                 .disabled(noCurrent)
                 .help("Oznacz jako Ciemnia (C)")
                 .accessibilityIdentifier("toolbar.darkroom")
-            Button { model.toggleEdit() } label: { Label("Edycja", systemImage: "slider.horizontal.3") }
-                .buttonStyle(PillButtonStyle(kind: .toggle(isOn: session.mode == .edit, tint: Palette.edited)))
-                .labelStyle(CenteredLabelStyle())
+            Button { model.toggleEdit() } label: { Image(systemName: "slider.horizontal.3") }
+                .buttonStyle(PillButtonStyle(kind: .toggle(isOn: session.mode == .edit, tint: Palette.edited), iconOnly: true))
+                .accessibilityLabel("Edycja")
                 .disabled(noCurrent)
                 .help("Edycja (E — światło i kolor, R — kadr, D — powrót)")
                 .accessibilityIdentifier("toolbar.edit")
@@ -162,8 +182,10 @@ struct MainToolbar: View {
             }
             .buttonStyle(PillButtonStyle(kind: .primary))
             .labelStyle(CenteredLabelStyle())
-            .disabled(session.exportCount == 0)
-            .help("Zapisz pozostawione zdjęcia w Album/")
+            .disabled(!session.canExport)
+            .help(session.deletionCount > 0
+                ? "Przenieś oznaczone do Kosza (\(session.deletionCount)) i zapisz pozostawione zdjęcia w Album/"
+                : "Zapisz pozostawione zdjęcia w Album/")
             .accessibilityIdentifier("toolbar.export")
         }
     }
@@ -178,6 +200,8 @@ private struct PillButtonStyle: ButtonStyle {
     }
 
     var kind = Kind.plain
+    /// A round 32pt button with only an icon (the decision buttons).
+    var iconOnly = false
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
@@ -186,7 +210,7 @@ private struct PillButtonStyle: ButtonStyle {
             .font(.system(size: 13, weight: .medium))
             .lineLimit(1)
             .padding(.horizontal, isIcon ? 0 : 12)
-            .frame(width: isIcon ? 30 : nil, height: 30)
+            .frame(width: isIcon ? (iconOnly ? 34 : 30) : nil, height: 30)
             .foregroundStyle(foreground)
             .background(background.opacity(pressed ? 0.8 : 1), in: Capsule())
             .opacity(isEnabled ? 1 : 0.38)
@@ -194,7 +218,9 @@ private struct PillButtonStyle: ButtonStyle {
     }
 
     private var isIcon: Bool {
-        if case .icon = kind { true } else { false }
+        if iconOnly { return true }
+        if case .icon = kind { return true }
+        return false
     }
 
     private var foreground: Color {

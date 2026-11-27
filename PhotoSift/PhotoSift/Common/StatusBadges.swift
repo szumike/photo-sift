@@ -13,11 +13,12 @@ enum Palette {
     static let edited = Color(red: 0x79 / 255, green: 0xb8 / 255, blue: 1)
     static let green = Color(red: 0x30 / 255, green: 0xd1 / 255, blue: 0x58 / 255)
     static let yellow = Color(red: 1, green: 0xd6 / 255, blue: 0x0a / 255)
+    static let red = Color(red: 1, green: 0x45 / 255, blue: 0x3a / 255)
 }
 
 /// The badges of one photo: RAW only, Darkroom, edit lock, edited, Album state.
 /// Used by the preview, the filmstrip and the grid. Identifiers: `badge.rawOnly`, `badge.darkroom`,
-/// `badge.locked`, `badge.edited`, `badge.album.current|changed|new`.
+/// `badge.deletion`, `badge.locked`, `badge.edited`, `badge.album.current|changed|new`.
 struct StatusBadges: View {
     let item: PhotoItem
     let session: Session
@@ -33,11 +34,14 @@ struct StatusBadges: View {
             if item.isRawOnly {
                 badge("Tylko RAW", icon: "photo", color: Color(white: 0.9), id: "badge.rawOnly", help: "Tylko RAW · podgląd z miniatury w ARW")
             }
-            if session.isMarked(item) || session.isSent(item) {
+            if session.showsDarkroom(item) {
                 badge(
                     session.isInPhotos(item) ? "Ciemnia · RAW w Zdjęciach" : session.isSent(item) ? "Ciemnia · RAW przeniesiony" : "Ciemnia",
                     icon: "moon.fill", color: Palette.amber, id: "badge.darkroom", help: "Ciemnia"
                 )
+            }
+            if session.isMarkedForDeletion(item) {
+                badge("Do usunięcia", icon: "xmark.bin.fill", color: Palette.red, id: "badge.deletion", help: "Do usunięcia przy eksporcie")
             }
             if showsLock && session.isEditLocked(item) {
                 badge("Edycja zablokowana", icon: "lock.fill", color: Palette.amber, id: "badge.locked", help: "Edycja zablokowana")

@@ -21,6 +21,7 @@ public struct SidecarStore: Sendable {
         let metadata = try Self.load(url)
         let marked = Self.string(metadata, "markedForDarkroom") == "True"
         let photosAssetID = Self.string(metadata, "photosAssetID")
+        let deletion = Self.string(metadata, "markedForDeletion") == "True"
         guard
             let x = Self.double(metadata, "cropX"), let y = Self.double(metadata, "cropY"),
             let width = Self.double(metadata, "cropWidth"), let height = Self.double(metadata, "cropHeight"),
@@ -28,7 +29,9 @@ public struct SidecarStore: Sendable {
             let angle = Self.double(metadata, "angle"),
             let temperature = Self.double(metadata, "temperature"),
             let tint = Self.double(metadata, "tint")
-        else { return SidecarState(markedForDarkroom: marked, photosAssetID: photosAssetID) }
+        else {
+            return SidecarState(markedForDarkroom: marked, photosAssetID: photosAssetID, markedForDeletion: deletion)
+        }
         let edit = EditParams(
             crop: CGRect(x: x, y: y, width: width, height: height),
             orientation: orientation,
@@ -40,14 +43,14 @@ public struct SidecarStore: Sendable {
             highlights: Self.double(metadata, "highlights") ?? 0,
             shadows: Self.double(metadata, "shadows") ?? 0
         )
-        return SidecarState(edit: edit, markedForDarkroom: marked, photosAssetID: photosAssetID)
+        return SidecarState(edit: edit, markedForDarkroom: marked, photosAssetID: photosAssetID, markedForDeletion: deletion)
     }
 
     /// Writes `state`, keeping foreign fields. An empty state creates no file and
     /// removes a file that holds nothing but `photosift:` fields.
     public func write(_ state: SidecarState, to url: URL) throws {
         let exists = FileManager.default.fileExists(atPath: url.path)
-        let isEmpty = state.edit == nil && !state.markedForDarkroom && state.photosAssetID == nil
+        let isEmpty = state.edit == nil && !state.markedForDarkroom && state.photosAssetID == nil && !state.markedForDeletion
         if isEmpty && !exists { return }
 
         let metadata = try exists ? Self.mutable(try Self.load(url)) : CGImageMetadataCreateMutable()
@@ -55,6 +58,7 @@ public struct SidecarStore: Sendable {
         if !isEmpty { try Self.register(metadata) }
         if state.markedForDarkroom { try Self.set(metadata, "markedForDarkroom", "True") }
         if let photosAssetID = state.photosAssetID { try Self.set(metadata, "photosAssetID", photosAssetID) }
+        if state.markedForDeletion { try Self.set(metadata, "markedForDeletion", "True") }
         if let edit = state.edit {
             try Self.set(metadata, "cropX", Self.format(edit.crop.origin.x))
             try Self.set(metadata, "cropY", Self.format(edit.crop.origin.y))

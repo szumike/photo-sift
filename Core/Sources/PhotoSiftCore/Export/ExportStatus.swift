@@ -3,6 +3,8 @@ public enum SkipReason: Equatable, Sendable {
     case darkroom
     /// No JPEG to export.
     case rawOnly
+    /// Marked for deletion: trashed at the start of the export.
+    case deletion
 }
 
 public enum ExportStatus: Equatable, Sendable {

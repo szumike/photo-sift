@@ -25,12 +25,13 @@ struct ShortcutsOverlay: View {
             Shortcut(label: "Tylko zdjęcie, pełny ekran (Esc wychodzi)", keys: ["F"]),
             Shortcut(label: "Pełny ekran okna", keys: ["⌃⌘F"]),
             Shortcut(label: "Otwórz zdjęcie z siatki", keys: ["Enter", "dwuklik"]),
-            Shortcut(label: "Filtry: Wszystkie / Ciemnia / Edytowane", keys: ["⌘1", "⌘2", "⌘3"]),
+            Shortcut(label: "Filtry: Wszystkie / Ciemnia / Edytowane / Do usunięcia", keys: ["⌘1", "⌘2", "⌘3", "⌘4"]),
             Shortcut(label: "Otwórz folder", keys: ["⌘O"]),
             Shortcut(label: "Ustawienia", keys: ["⌘,"]),
         ]),
         Group(title: "Decyzje", items: [
-            Shortcut(label: "Usuń", keys: ["⌫"]),
+            Shortcut(label: "Usuń od razu do Kosza", keys: ["⌫"]),
+            Shortcut(label: "Do usunięcia przy eksporcie (przełącz)", keys: ["X"]),
             Shortcut(label: "Ciemnia (przełącz)", keys: ["C"]),
         ]),
         Group(title: "Podgląd (przytrzymaj)", items: [

@@ -20,6 +20,8 @@ public struct ExportPlan: Sendable, Equatable {
     public var conflictCount: Int { count(.conflict) }
     public var darkroomSkippedCount: Int { count(.skipped(.darkroom)) }
     public var rawOnlySkippedCount: Int { count(.skipped(.rawOnly)) }
+    /// Photos marked for deletion, trashed before the files are written.
+    public var deletionItems: [PhotoItem] { entries.filter { $0.status == .skipped(.deletion) }.map(\.item) }
     /// Number of files `run` would write.
     public var pendingCount: Int { newCount + changedCount }
 }
@@ -37,6 +39,10 @@ public struct ExportSummary: Sendable, Equatable {
     public var rendered = 0
     public var failed: [String] = []
     public var wasCancelled = false
+    /// Photos marked for deletion that were moved to the Trash before writing.
+    public var trashed = 0
+    /// Ids of marked photos that could not be fully moved to the Trash.
+    public var trashFailed: [String] = []
 }
 
 /// Remembers who owns each Album file so re-planning only `stat`s files and re-reads the changed ones.
@@ -140,6 +146,7 @@ public struct AlbumExporter: Sendable {
     }
 
     private func status(of item: PhotoItem, state: SidecarState, edit: EditParams?) -> ExportStatus {
+        if state.markedForDeletion { return .skipped(.deletion) }
         if item.isSentToDarkroom || state.markedForDarkroom || state.photosAssetID != nil { return .skipped(.darkroom) }
         guard let jpegURL = item.jpegURL else { return .skipped(.rawOnly) }
 

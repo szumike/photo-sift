@@ -188,4 +188,109 @@ struct SessionDecisionTests {
         #expect(session.exportStatuses["A2"] == .current)
         #expect(session.exportCount == 0)
     }
+
+    // MARK: Do usunięcia (X)
+
+    @Test func deletionToggleMarksWithoutAdvancingOrTrashing() throws {
+        let (session, folder) = try make(.init(pairs: ["A1", "A2"]))
+        session.toggleDeletion()
+        #expect(session.isMarkedForDeletion(session.photo(id: "A1")!))
+        #expect(session.currentID == "A1")
+        #expect(exists(folder, "A1.JPG") && exists(folder, "A1.ARW"))
+        #expect(session.toast?.text == "A1 → do usunięcia")
+        #expect(session.deletionCount == 1)
+        #expect(session.exportCount == 1)
+        #expect(session.exportStatuses["A1"] == .skipped(.deletion))
+        #expect(try SidecarStore().read(at: folder.appendingPathComponent("A1.xmp")).markedForDeletion)
+
+        session.toggleDeletion()
+        #expect(!session.isMarkedForDeletion(session.photo(id: "A1")!))
+        #expect(session.toast?.text == "A1: bez usuwania")
+        #expect(session.deletionCount == 0)
+        #expect(!exists(folder, "A1.xmp"))
+    }
+
+    @Test func deletionAndDarkroomMarksExcludeEachOther() throws {
+        let (session, _) = try make(.init(pairs: ["A1"]))
+        session.toggleDarkroom()
+        session.toggleDeletion()
+        let item = session.photo(id: "A1")!
+        #expect(session.isMarkedForDeletion(item) && !session.isMarked(item))
+        session.toggleDarkroom()
+        #expect(!session.isMarkedForDeletion(item) && session.isMarked(item))
+    }
+
+    @Test func deletionMarkSurvivesReopening() throws {
+        let (session, folder) = try make(.init(pairs: ["A1", "A2"]))
+        session.toggleDeletion()
+        let reopened = try Session(folder: folder)
+        #expect(reopened.isMarkedForDeletion(reopened.photo(id: "A1")!))
+    }
+
+    @Test func deletionFilterShowsMarked() throws {
+        let (session, _) = try make(.init(pairs: ["A1", "A2", "A3"]))
+        session.next()
+        session.toggleDeletion()
+        session.setFilter(.deletion)
+        #expect(session.visiblePhotos.map(\.id) == ["A2"])
+    }
+
+    @Test func exportTrashesMarkedFirstAndKeepsCurrent() async throws {
+        let (session, folder) = try make(.init(pairs: ["A1", "A2", "A3"]))
+        session.toggleDeletion()
+        session.next()
+        session.next()
+        #expect(session.canExport)
+        let plan = session.exportPlan()
+        #expect(plan.pendingCount == 2)
+        #expect(plan.deletionItems.map(\.id) == ["A1"])
+        let summary = await session.runExport(plan: plan)
+        #expect(summary.trashed == 1 && summary.trashFailed.isEmpty)
+        #expect(summary.copied == 2)
+        #expect(!exists(folder, "A1.JPG") && !exists(folder, "A1.ARW") && !exists(folder, "A1.xmp"))
+        #expect(!exists(folder, "Album/A1.JPG"))
+        #expect(session.photos.map(\.id) == ["A2", "A3"])
+        #expect(session.currentID == "A3")
+        #expect(session.deletedCount == 1)
+        #expect(session.deletionCount == 0)
+        #expect(session.toast?.subtext == "Do Kosza: 1 zdjęcie.")
+    }
+
+    @Test func exportWithOnlyDeletionsIsAvailable() async throws {
+        let (session, folder) = try make(.init(pairs: ["A1"]))
+        await session.runExport(plan: session.exportPlan())
+        #expect(!session.canExport)
+        session.toggleDeletion()
+        #expect(session.exportCount == 0 && session.canExport)
+        let summary = await session.runExport(plan: session.exportPlan())
+        #expect(summary.trashed == 1)
+        #expect(!exists(folder, "A1.JPG"))
+        // Album/ is never touched by deletion.
+        #expect(exists(folder, "Album/A1.JPG"))
+        #expect(session.photos.isEmpty && session.currentID == nil)
+    }
+
+    @Test func darkroomKeyClearsDeletionOnPhotoWithoutRaw() throws {
+        let (session, _) = try make(.init(jpegOnly: ["A1"]))
+        session.toggleDeletion()
+        session.toggleDarkroom()
+        #expect(!session.isMarkedForDeletion(session.photo(id: "A1")!))
+        #expect(session.toast?.text == "Brak pliku RAW — nie można wysłać do Ciemni")
+        #expect(session.toast?.subtext == "Zdjęte oznaczenie do usunięcia.")
+    }
+
+    @Test func deletionOnSentPhotoTakesOverDarkroomAndCTakesItBack() throws {
+        let fixture = try FixtureFolder.make(.init(pairs: ["A2"]))
+        let darkroom = fixture.url.appendingPathComponent("Ciemnia", isDirectory: true)
+        try fileManager.createDirectory(at: darkroom, withIntermediateDirectories: true)
+        try fileManager.moveItem(at: fixture.url.appendingPathComponent("A2.ARW"), to: darkroom.appendingPathComponent("A2.ARW"))
+        let session = try Session(folder: fixture.url)
+        let item = session.photo(id: "A2")!
+        #expect(session.showsDarkroom(item))
+        session.toggleDeletion()
+        #expect(session.isMarkedForDeletion(item) && !session.showsDarkroom(item))
+        session.toggleDarkroom()
+        #expect(!session.isMarkedForDeletion(item) && session.showsDarkroom(item))
+        #expect(session.toast?.subtext == "Zdjęte oznaczenie do usunięcia.")
+    }
 }
