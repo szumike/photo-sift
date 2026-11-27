@@ -16,7 +16,7 @@ Photo Sift splits that pile in one keyboard-driven pass over the folder:
 ## How it works
 
 1. Copy the whole session, JPEG and ARW together, into one folder.
-2. Open the folder in Photo Sift (⌘O). Files with the same base name (`DSC01234.JPG` + `DSC01234.ARW`) appear as one photo.
+2. Open the folder in Photo Sift (⌘O), or right-click a photo in Finder and choose **Open With → PhotoSift** to open its folder on that photo. Files with the same base name (`DSC01234.JPG` + `DSC01234.ARW`) appear as one photo.
 3. Review photos one by one or in a grid (G). Press ⌫ to delete right away, X to mark for deletion on export, and C to mark for the Darkroom. Hold Z to check focus, hold B to see the real RAW decode.
 4. Edit the keepers: E for light and colour, R for crop and straightening.
 5. Click **Do Ciemni** to send marked RAWs to the Darkroom target set in Settings (⌘,):

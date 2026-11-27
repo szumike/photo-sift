@@ -99,12 +99,19 @@ final class AppModel {
 
     // MARK: Folder
 
-    func openFolder(_ url: URL) {
+    /// Opens the folder of a photo file (Finder "Open With") on that photo; JPEG and ARW of a pair are one photo.
+    func openPhoto(_ file: URL) {
+        let file = file.standardizedFileURL
+        openFolder(file.deletingLastPathComponent(), startingAt: file.deletingPathExtension().lastPathComponent)
+    }
+
+    /// Opens `url` on `photoID`, or on the remembered position when it is nil.
+    func openFolder(_ url: URL, startingAt photoID: String? = nil) {
         session?.flushPendingSaves()
         let folder = url.standardizedFileURL
         let newSession: Session
         do {
-            newSession = try Session(folder: folder, resumeID: resumeStore.lastPhotoID(in: folder))
+            newSession = try Session(folder: folder, resumeID: photoID ?? resumeStore.lastPhotoID(in: folder))
         } catch {
             show(Toast("Nie udało się otworzyć folderu", subtext: folder.path))
             return
@@ -121,7 +128,8 @@ final class AppModel {
         let photos = newSession.photos
         Task { await loader.setItems(photos) }
         recordPosition()
-        if let toast = newSession.toast { show(toast, from: newSession) }
+        // The "resumed from photo N" toast only makes sense for the remembered position.
+        if photoID == nil, let toast = newSession.toast { show(toast, from: newSession) }
     }
 
     /// Asks for a folder (folders only) and opens it.

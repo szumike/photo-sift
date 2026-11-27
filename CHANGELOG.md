@@ -9,6 +9,16 @@ All notable changes to Photo Sift. The format follows [Keep a Changelog](https:/
 
 The version lives in `MARKETING_VERSION` in `PhotoSift/PhotoSift.xcodeproj/project.xcproj`. The build number (`CURRENT_PROJECT_VERSION`) goes up by 1 with every release. Every release has a `vX.Y.Z` tag.
 
+## 0.7.0 - 2026-11-27
+
+### Added
+
+- **Open With from Finder.** Right-click a JPEG or ARW and choose Open With → PhotoSift. The app opens the photo's whole folder on that photo, replacing the folder that was open.
+
+### Changed
+
+- The app has a single window. Opening a photo from Finder reuses it instead of opening a second one.
+
 ## 0.6.0 - 2026-11-27
 
 ### Added

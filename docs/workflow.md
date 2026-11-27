@@ -6,6 +6,7 @@ Photo Sift służy do szybkiej selekcji zdjęć z Sony A7 III (JPEG + ARW) na Ma
 
 1. Wrzucam do folderu wszystkie zdjęcia z sesji, JPEG i ARW razem.
 2. Otwieram folder w Photo Sift. Naraz oglądam tylko jeden folder.
+   Mogę też w Finderze kliknąć prawym na zdjęcie (JPEG lub ARW) i wybrać **Otwórz za pomocą → PhotoSift**. Aplikacja otwiera cały folder tego zdjęcia, ustawiona na nim, zamiast na zapamiętanej pozycji. Jeśli inny folder był otwarty, zostaje zastąpiony.
 3. Usuwam słabe zdjęcia: duplikaty, nieostre. Pewne od razu (⌫), wątpliwe oznaczam **do usunięcia** (X) i decyduję do eksportu.
 4. Zdjęcia do lekkiej obróbki poprawiam: kadr, prostowanie, balans bieli.
 5. Zdjęcia do mocnej obróbki oznaczam jako **Ciemnia**.
